@@ -1,0 +1,8 @@
+# Salin file ini menjadi .Renviron (di folder yang sama), isi, lalu mulai ulang R.
+# File .Renviron TIDAK ikut ke GitHub.
+ANTHROPIC_API_KEY=
+ZI_TAHUN=2026
+ZI_UNIT=Fakultas Kedokteran Universitas Hasanuddin
+# Opsional:
+# ZI_CLAUDE_MODEL=claude-opus-5-5
+# ZI_CLAUDE_EFFORT=medium

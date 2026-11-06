@@ -1,0 +1,11 @@
+# Data internal unit — JANGAN di-commit (repo ini publik)
+lke-zi-dashboard/data/lokal/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+# Kunci API
+.Renviron
+# File kerja R
+.Rhistory
+.RData
+.Rproj.user/
