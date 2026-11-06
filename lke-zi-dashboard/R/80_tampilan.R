@@ -67,6 +67,7 @@ h1, h2, h3, h4, h5 { color: {{judul}}; font-weight: 700; }
 .bslib-value-box.vb-marun .value-box-showcase, .bslib-value-box.vb-marun .value-box-showcase * {
   color: {{emas}} !important; fill: {{emas}} !important; background: none !important; -webkit-text-fill-color: {{emas}} !important; }
 .bslib-value-box.vb-marun .value-box-title { color: rgba(255,255,255,.85); }
+.bslib-value-box.vb-marun .value-box-showcase { font-size: 1.6rem; opacity: .95; }
 
 /* Tata letak dengan panel samping */
 .bslib-sidebar-layout { border: 0 !important; border-radius: 12px; background: #fff !important;

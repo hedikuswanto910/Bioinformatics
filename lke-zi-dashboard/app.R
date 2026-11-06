@@ -10,6 +10,11 @@ library(bslib)
 for (f in sort(list.files("R", pattern = "\\.R$", full.names = TRUE))) source(f, encoding = "UTF-8")
 
 options(shiny.maxRequestSize = 60 * 1024^2)  # unggahan maks 60 MB
+# Semua tabel bisa digeser horizontal di layar sempit (tidak memecah layout)
+options(DT.options = list(scrollX = TRUE, autoWidth = FALSE, language = list(
+  search = "Cari:", lengthMenu = "Tampilkan _MENU_ baris", info = "_START_-_END_ dari _TOTAL_ baris",
+  infoEmpty = "0 baris", infoFiltered = "(disaring dari _MAX_)", zeroRecords = "Tidak ada data",
+  paginate = list(previous = "\u2039", `next` = "\u203A"))))
 
 RB <- muat_rubrik()
 RB$grup <- ifelse(RB$bagian == "Hasil", RB$area_kode, paste0(RB$area_kode, RB$komponen_no))
@@ -78,21 +83,22 @@ ui <- page_navbar(
   fillable = FALSE,  # halaman bisa di-scroll; tabel tidak terjepit
   window_title = paste("LKE ZI -", KONFIG$unit),
   header = tagList(tags$head(tags$style(HTML(CSS_APLIKASI)), tags$style(HTML(CSS_HEADER)),
-                             tags$script(HTML(JS_APLIKASI)), tags$script(HTML(JS_HEADER))),
+                             tags$style(HTML(CSS_RESPONSIF)),
+                             tags$script(HTML(JS_APLIKASI)), tags$script(HTML(JS_HEADER)), tags$script(HTML(JS_RESPONSIF))),
                    banner_ui()),
   footer = kaki_ui(),
 
   # ---------------------------------------------------------------- Beranda
   nav_panel("Beranda",
-    layout_columns(fill = FALSE,
-      value_box("Nilai klaim Pengungkit", textOutput("vb_pengungkit"), showcase = icon("gauge-high"), class = "vb-marun"),
-      value_box("Nilai klaim Hasil", textOutput("vb_hasil"), showcase = icon("chart-line"), class = "vb-marun"),
-      value_box("Butir siap (hijau)", textOutput("vb_hijau"), showcase = icon("circle-check"), class = "vb-marun"),
-      value_box("Butir perlu perbaikan", textOutput("vb_merah"), showcase = icon("triangle-exclamation"), class = "vb-marun")
+    kisi_kpi(
+      value_box("Nilai klaim Pengungkit", textOutput("vb_pengungkit"), showcase = icon("gauge-high"), showcase_layout = "top right", class = "vb-marun"),
+      value_box("Nilai klaim Hasil", textOutput("vb_hasil"), showcase = icon("chart-line"), showcase_layout = "top right", class = "vb-marun"),
+      value_box("Butir siap (hijau)", textOutput("vb_hijau"), showcase = icon("circle-check"), showcase_layout = "top right", class = "vb-marun"),
+      value_box("Butir perlu perbaikan", textOutput("vb_merah"), showcase = icon("triangle-exclamation"), showcase_layout = "top right", class = "vb-marun")
     ),
-    layout_columns(col_widths = c(7, 5),
+    kisi(desktop = c(7, 5), tablet = 1,
       card(card_header("Klaim saat ini vs penilaian evaluator sebelumnya (% dari bobot)"),
-           plotOutput("plot_komponen", height = "420px")),
+           plotOutput("plot_komponen", height = "auto")),
       card(card_header("Progres per komponen"), DT::DTOutput("tbl_progres", fill = FALSE))
     ),
     card(card_header("Cara memakai"), markdown("
@@ -107,22 +113,20 @@ Nilai di halaman ini adalah **nilai yang diklaim unit**, bukan prediksi nilai ev
 
   # ---------------------------------------------------------------- Isi LKE
   nav_panel("Isi LKE",
-    layout_sidebar(
-      sidebar = sidebar(width = 400,
+    tata_samping("ts_isi", judul = "Daftar butir per zona", mobile = "laci",
+      samping = tagList(
         textInput("f_cari", NULL, placeholder = "Cari kode atau kata, mis. P1.ii atau SOP"),
         selectInput("f_status", NULL, c("Tampilkan semua status" = "Semua", "Belum diisi" = "belum diisi",
                                         "Merah" = "merah", "Kuning" = "kuning", "Hijau" = "hijau")),
         uiOutput("ui_daftar_zona"),
-        helpText("Arahkan kursor ke butir untuk melihat pertanyaan lengkap. Arti kode ada di menu 'Keterangan Kode'.")
-      ),
-      uiOutput("ui_form")
-    )
+        helpText("Pertanyaan lengkap tampil di kotak 'Keterangan kode' setelah butir dibuka. Arti kode ada di menu 'Keterangan Kode'.")),
+      uiOutput("ui_form"))
   ),
 
   # ---------------------------------------------------------------- Validasi
   nav_panel("Validasi",
     card(card_header("Status seluruh butir - klik baris untuk membuka butir"),
-         layout_columns(fill = FALSE, col_widths = c(3, 3),
+         kisi(desktop = c(1, 1, 2), tablet = c(1, 1),
            selectInput("v_status", "Status", c("Semua", "merah", "kuning", "belum diisi", "hijau")),
            selectInput("v_area", "Area", c("Semua", "Pemenuhan", "Reform", "Hasil"))),
          DT::DTOutput("tbl_validasi", fill = FALSE)),
@@ -130,14 +134,14 @@ Nilai di halaman ini adalah **nilai yang diklaim unit**, bukan prediksi nilai ev
   ),
 
   # ---------------------------------------------------------------- Analisis
-  nav_panel("Pelajaran Penilaian Lalu",
+  nav_panel(label_menu("Pelajaran Penilaian Lalu", "Pelajaran"), value = "Pelajaran Penilaian Lalu",
     uiOutput("ui_analisis")
   ),
 
   # ---------------------------------------------------------------- Dokumen
-  nav_panel("Draf Dokumen (Claude)",
-    layout_sidebar(
-      sidebar = sidebar(width = 420,
+  nav_panel(label_menu("Draf Dokumen (Claude)", "Draf Dokumen"), value = "Draf Dokumen (Claude)",
+    tata_samping("ts_dok", judul = "Formulir draf dokumen", mobile = "tumpuk",
+      samping = tagList(
         selectInput("d_jenis", "Jenis dokumen", JENIS_DOKUMEN),
         selectizeInput("d_butir", "Butir LKE terkait (opsional)", c("(tidak ada)" = "", stats::setNames(BUTIR$kode, paste(BUTIR$kode, "-", BUTIR$judul)))),
         textAreaInput("d_fakta", "Fakta kegiatan yang SUDAH terjadi", rows = 14,
@@ -150,9 +154,9 @@ Nilai di halaman ini adalah **nilai yang diklaim unit**, bukan prediksi nilai ev
   ),
 
   # ---------------------------------------------------------------- SOP
-  nav_panel("Prosedur Mutu (SOP)",
-    layout_sidebar(
-      sidebar = sidebar(width = 360,
+  nav_panel(label_menu("Prosedur Mutu (SOP)", "SOP"), value = "Prosedur Mutu (SOP)",
+    tata_samping("ts_sop", judul = "Berkas yang diperiksa", mobile = "tumpuk",
+      samping = tagList(
         fileInput("s_daftar", "Daftar PM (.xlsx)", accept = ".xlsx"),
         fileInput("s_pdf", "File PDF SOP (boleh banyak)", accept = ".pdf", multiple = TRUE),
         actionButton("s_periksa", "Periksa", class = "btn-primary"),
@@ -165,7 +169,7 @@ Nilai di halaman ini adalah **nilai yang diklaim unit**, bukan prediksi nilai ev
 
   # ---------------------------------------------------------------- Ekspor
   nav_panel("Ekspor",
-    layout_columns(
+    kisi(desktop = c(1, 1), tablet = c(1, 1),
       card(card_header("Lembar isian Excel"),
            p("Workbook baru berisi seluruh isian, status, nilai, dan temuan; kolom 'Baris LKE' = nomor baris di template resmi."),
            downloadButton("e_excel", "Unduh Excel")),
@@ -176,7 +180,7 @@ Nilai di halaman ini adalah **nilai yang diklaim unit**, bukan prediksi nilai ev
   ),
 
   # ---------------------------------------------------------------- Keterangan
-  nav_panel("Keterangan Kode",
+  nav_panel(label_menu("Keterangan Kode", "Kode"), value = "Keterangan Kode",
     card(card_header("Cara membaca kode butir"), markdown("
 Pertanyaan LKE yang panjang ditampilkan sebagai **kode** + judul singkat. Arahkan kursor ke kode untuk melihat pertanyaan lengkap, atau cari di tabel di bawah.
 
@@ -194,7 +198,7 @@ Zona 1-6 sama dengan sheet *Zona 1 ... Zona 6* di file LKE Excel: 1 Manajemen Pe
 
   # ---------------------------------------------------------------- Pengaturan
   nav_panel("Pengaturan",
-    layout_columns(col_widths = c(6, 6),
+    kisi(desktop = c(1, 1), tablet = 1,
       card(card_header("Umum & Claude"),
            numericInput("p_tahun", "Tahun penilaian", KONFIG$tahun, min = 2020, max = 2100),
            uiOutput("p_status_ai"),
@@ -209,10 +213,10 @@ Zona 1-6 sama dengan sheet *Zona 1 ... Zona 6* di file LKE Excel: 1 Manajemen Pe
            actionButton("p_impor_riwayat", "Impor riwayat"))
     ),
     card(card_header("Tampilan header (logo & gambar banner)"),
-         layout_columns(col_widths = c(5, 5, 2),
+         kisi(desktop = c(5, 5, 2), tablet = c(1, 1),
            fileInput("p_logo", "Logo (PNG/SVG, latar transparan)", accept = c(".png", ".svg", ".jpg", ".jpeg", ".webp")),
            fileInput("p_header", "Gambar banner (foto lebar, mis. 1600x400 px)", accept = c(".jpg", ".jpeg", ".png", ".webp", ".svg")),
-           actionButton("p_reset_gambar", "Pakai bawaan", class = "btn-outline-secondary mt-4")),
+           actionButton("p_reset_gambar", "Pakai bawaan", class = "btn-outline-secondary mt-lg-4")),
          helpText("Gambar disimpan di folder www/kustom (tidak ikut ke GitHub) dan langsung tampil.")),
     card(card_header("Pemakaian Claude"), textOutput("p_biaya"), DT::DTOutput("p_log_ai", fill = FALSE)),
     card(card_header("Jejak perubahan"), DT::DTOutput("p_jejak", fill = FALSE))
@@ -246,7 +250,10 @@ server <- function(input, output, session) {
   output$vb_hijau      <- renderText(sprintf("%d / %d", sum(status()$status == "hijau"), nrow(status())))
   output$vb_merah      <- renderText(sprintf("%d merah, %d kuning", sum(status()$status == "merah"), sum(status()$status == "kuning")))
 
+  # Lebar wadah grafik (dikirim browser setiap kali ukuran layar berubah)
+  lebar_grafik <- reactive(session$clientData$output_plot_komponen_width %||% 800)
   output$plot_komponen <- renderPlot({
+    sempit <- lebar_grafik() < 640
     kp <- skor()$komponen
     d <- data.frame(komponen = paste0("Zona ", kp$komponen_no, " (", kp$area_kode, ") ", kp$komponen),
                     sumber = "Klaim saat ini", persen = 100 * kp$skor / kp$bobot_komponen)
@@ -261,14 +268,16 @@ server <- function(input, output, session) {
       }
     }
     d$sumber <- factor(d$sumber, c(unname(sumber_lalu), "Klaim saat ini"))
+    if (sempit) d$komponen <- sub("^(Zona [0-9]+ \\([PR]\\)).*$", "\\1", d$komponen)  # label pendek di layar sempit
     d$komponen <- factor(d$komponen, rev(sort(unique(d$komponen))))
     ggplot2::ggplot(d, ggplot2::aes(x = persen, y = komponen, fill = sumber)) +
       ggplot2::geom_col(position = ggplot2::position_dodge(width = 0.8), width = 0.75) +
       ggplot2::scale_fill_manual(values = c("Klaim unit (lalu)" = "#E8B4AE", "TPI (lalu)" = WARNA$emas, "Klaim saat ini" = WARNA$marun), drop = TRUE) +
       ggplot2::scale_x_continuous(limits = c(0, 100), expand = c(0, 0)) +
       ggplot2::labs(x = "% dari bobot komponen", y = NULL, fill = NULL) +
-      ggplot2::theme_minimal(base_size = 12) + ggplot2::theme(legend.position = "top", panel.grid.major.y = ggplot2::element_blank())
-  })
+      ggplot2::theme_minimal(base_size = if (sempit) 11 else 12) +
+      ggplot2::theme(legend.position = "top", panel.grid.major.y = ggplot2::element_blank())
+  }, height = function() if (lebar_grafik() < 640) 520 else 440)
 
   output$tbl_progres <- DT::renderDT({
     st <- merge(status(), unique(BUTIR[, c("kode", "zona", "nama_zona")]), by = "kode")
@@ -330,16 +339,16 @@ server <- function(input, output, session) {
 
     tagList(
       card(
-        card_header(div(class = "d-flex justify-content-between align-items-center",
+        card_header(div(class = "kepala-butir",
           span(chip_kode(k, besar = TRUE), " ", b$nama_zona, " \u00B7 ", b$komponen, " \u203A ", b$area, " \u203A ", b$sub_nama),
-          span(actionButton("btn_sebelum", "\u2190 Sebelumnya", class = "btn-sm", disabled = if (i == 1) "disabled" else NULL),
+          span(class = "navigasi-butir", actionButton("btn_sebelum", "\u2190 Sebelumnya", class = "btn-sm", disabled = if (i == 1) "disabled" else NULL),
                actionButton("btn_lanjut", "Berikutnya \u2192", class = "btn-sm", disabled = if (i == nrow(BUTIR)) "disabled" else NULL)))),
         div(class = "keterangan", div(class = "label", paste("Keterangan kode", k)),
             div(class = "fs-5", b$pertanyaan),
             tags$small(class = "text-muted", sprintf("Jenis jawaban: %s \u00B7 butir ke-%d dari %d", b$pilihan, i, nrow(BUTIR)))),
         accordion(open = c("Kriteria jawaban", if (!is.null(rw)) "Catatan evaluator periode lalu"),
           accordion_panel("Kriteria jawaban",
-            if (length(krit)) tags$table(class = "kriteria", lapply(names(krit), function(h) tags$tr(tags$td(tags$b(h)), tags$td(krit[[h]]))))
+            if (length(krit)) div(class = "gulir-x", tags$table(class = "kriteria", lapply(names(krit), function(h) tags$tr(tags$td(tags$b(h)), tags$td(krit[[h]])))))
             else teks_pra(b$penjelasan)),
           if (!is.null(rw)) accordion_panel("Catatan evaluator periode lalu",
             tags$p(sprintf("Unit: %s \u00B7 TP PTN: %s \u00B7 TPSK: %s \u00B7 TPI: %s",
@@ -352,7 +361,7 @@ server <- function(input, output, session) {
             actionButton("btn_pakai_lalu", "Pakai isian lalu sebagai draf", class = "btn-sm btn-outline-secondary mt-2"))
         )
       ),
-      layout_columns(col_widths = c(7, 5),
+      kisi(desktop = c(7, 5), tablet = 1,
         card(card_header("Isian"),
           input_jawaban,
           textAreaInput("in_narasi", "Narasi / Keterangan", value = isi$narasi, rows = 9, width = "100%",
@@ -461,10 +470,10 @@ server <- function(input, output, session) {
         p(tags$b("Jawaban yang dapat dipertahankan: "), tags$span(class = "badge bg-primary fs-6", d$jawaban_disarankan),
           " Risiko diturunkan: ", tags$span(class = paste0("badge bg-", warna), d$tingkat_risiko)),
         teks_pra(d$alasan),
-        if (nrow(unsur)) tags$table(class = "table table-sm mt-2",
+        if (nrow(unsur)) div(class = "gulir-x", tags$table(class = "table table-sm mt-2",
           tags$thead(tags$tr(tags$th("Unsur kriteria"), tags$th("Terbukti?"), tags$th("Keterangan"))),
           tags$tbody(lapply(seq_len(nrow(unsur)), function(i) tags$tr(tags$td(unsur$unsur[i]),
-            tags$td(if (isTRUE(unsur$terbukti[i])) "\u2705" else "\u274C"), tags$td(unsur$keterangan[i]))))),
+            tags$td(if (isTRUE(unsur$terbukti[i])) "\u2705" else "\u274C"), tags$td(unsur$keterangan[i])))))),
         if (length(d$dokumen_perlu_ditambah)) tagList(tags$b("Dokumen yang perlu ditambahkan"), tags$ul(lapply(d$dokumen_perlu_ditambah, tags$li))),
         tags$b("Perbaikan narasi"), teks_pra(d$perbaikan_narasi),
         if (length(h$pdf_dilewati)) div(class = "alert alert-warning mt-2", "PDF tidak dikirim karena melebihi batas ukuran: ", paste(basename(h$pdf_dilewati), collapse = ", "))
@@ -513,7 +522,7 @@ server <- function(input, output, session) {
       "Belum ada riwayat penilaian. Impor file LKE yang memuat jawaban & catatan TP PTN/TPSK/TPI di menu Pengaturan.")))
     tagList(
       card(card_header("Ringkasan"), uiOutput("an_ringkas")),
-      layout_columns(col_widths = c(5, 7),
+      kisi(desktop = c(5, 7), tablet = 1,
         card(card_header("Alasan penurunan yang paling sering (dari catatan TPI/TPSK)"), DT::DTOutput("an_alasan", fill = FALSE)),
         card(card_header("Penurunan per komponen"), DT::DTOutput("an_komponen", fill = FALSE))),
       card(card_header("Butir yang diturunkan evaluator"), DT::DTOutput("an_butir", fill = FALSE))

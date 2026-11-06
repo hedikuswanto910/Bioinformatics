@@ -81,6 +81,16 @@ Model bawaan: `claude-opus-5-5` (bisa diganti lewat `ZI_CLAUDE_MODEL`). Bila fil
 - Banner tampil penuh di Beranda dan menjadi pita tipis di menu lain.
 - Ganti logo dan banner lewat **Pengaturan -> Tampilan header**. File disimpan di `www/kustom/` dan sengaja tidak ikut ke GitHub (repo publik; banner fakultas memuat foto pimpinan).
 
+## Tampilan responsif
+
+| Layar | Lebar | Perilaku |
+|---|---|---|
+| Mobile | < 768 px | Menu lewat tombol hamburger; daftar butir (Isi LKE) jadi laci yang dibuka tombol "Daftar butir per zona"; kartu KPI 1 kolom; tabel digeser horizontal |
+| Tablet | 768-1023 px | Menu hamburger; panel samping bisa diciutkan (tombol panah); KPI 2 kolom |
+| Desktop | >= 1024 px | Menu horizontal (label singkat di 1024-1279 px); panel samping tampil penuh; KPI 4 kolom |
+
+Konten maksimum 1440 px di tengah layar; navbar sticky; target sentuh minimal 44x44 px pada layar sentuh. Pengaturan di `R/90_responsif.R`. Uji otomatis (Node.js + Playwright): `node tests/ui/uji_responsif.js`.
+
 ## Aturan validasi otomatis
 
 | Kode | Tingkat | Aturan |
@@ -119,6 +129,7 @@ R/40_penyimpanan.R     SQLite + jejak + log AI
 R/50_ekspor.R          Excel & Word
 R/60_sop.R             pemeriksa daftar PM & PDF SOP
 R/70_impor.R           pembaca template LKE Excel
+R/90_responsif.R       tata letak responsif (grid, panel samping, breakpoint)
 R/80_tampilan.R        tema merah-marun-emas (acuan med.unhas.ac.id), header & ribbon; ubah daftar WARNA untuk ganti tema
 www/gambar/            logo & banner bawaan (www/kustom/ = unggahan Anda, tidak di-commit)
 data/rubrik_lke.csv    113 butir + 24 rincian, kriteria & bobot (publik)
