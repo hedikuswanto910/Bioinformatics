@@ -91,10 +91,10 @@ ui <- page_navbar(
   # ---------------------------------------------------------------- Beranda
   nav_panel("Beranda",
     kisi_kpi(
-      value_box("Nilai klaim Pengungkit", textOutput("vb_pengungkit"), showcase = icon("gauge-high"), showcase_layout = "top right", class = "vb-marun"),
-      value_box("Nilai klaim Hasil", textOutput("vb_hasil"), showcase = icon("chart-line"), showcase_layout = "top right", class = "vb-marun"),
-      value_box("Butir siap (hijau)", textOutput("vb_hijau"), showcase = icon("circle-check"), showcase_layout = "top right", class = "vb-marun"),
-      value_box("Butir perlu perbaikan", textOutput("vb_merah"), showcase = icon("triangle-exclamation"), showcase_layout = "top right", class = "vb-marun")
+      kartu_kpi("Nilai klaim Pengungkit", "vb_pengungkit", "gauge-high"),
+      kartu_kpi("Nilai klaim Hasil", "vb_hasil", "chart-line"),
+      kartu_kpi("Butir siap (hijau)", "vb_hijau", "circle-check"),
+      kartu_kpi("Butir merah / kuning (perlu perbaikan)", "vb_merah", "triangle-exclamation")
     ),
     kisi(desktop = c(7, 5), tablet = 1,
       card(card_header("Klaim saat ini vs penilaian evaluator sebelumnya (% dari bobot)"),
@@ -248,7 +248,7 @@ server <- function(input, output, session) {
   output$vb_pengungkit <- renderText(sprintf("%.2f / 60", skor()$ringkas$skor[3]))
   output$vb_hasil      <- renderText(sprintf("%.2f / 40", skor()$ringkas$skor[4]))
   output$vb_hijau      <- renderText(sprintf("%d / %d", sum(status()$status == "hijau"), nrow(status())))
-  output$vb_merah      <- renderText(sprintf("%d merah, %d kuning", sum(status()$status == "merah"), sum(status()$status == "kuning")))
+  output$vb_merah      <- renderText(sprintf("%d / %d", sum(status()$status == "merah"), sum(status()$status == "kuning")))
 
   # Lebar wadah grafik (dikirim browser setiap kali ukuran layar berubah)
   lebar_grafik <- reactive(session$clientData$output_plot_komponen_width %||% 800)

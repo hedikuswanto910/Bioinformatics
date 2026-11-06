@@ -28,6 +28,14 @@ kisi <- function(..., desktop = c(1, 1), tablet = 1, kelas = NULL) {
 
 kisi_kpi <- function(...) htmltools::div(class = "kisi-kpi", ...)
 
+# Satu kartu KPI rata tengah: ikon kecil, nilai (output Shiny), keterangan
+kartu_kpi <- function(judul, id_output, ikon) {
+  htmltools::div(class = "kpi-kartu", role = "group", `aria-label` = judul,
+    htmltools::span(class = "kpi-ikon", `aria-hidden` = "true", shiny::icon(ikon)),
+    htmltools::div(class = "kpi-nilai", shiny::textOutput(id_output, inline = TRUE)),
+    htmltools::div(class = "kpi-judul", judul))
+}
+
 tata_samping <- function(id, samping, ..., judul = "Menu", mobile = c("laci", "tumpuk")) {
   mobile <- match.arg(mobile)
   htmltools::div(id = id, class = paste0("tata-samping mobile-", mobile),
@@ -88,9 +96,7 @@ nav.navbar .navbar-brand { font-size: 1rem; }
 
 /* ---------- KPI 1 kolom ---------- */
 .kisi-kpi { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1fr); margin-bottom: 1rem; }
-.kisi-kpi > .bslib-value-box { margin: 0; min-height: 0; }
-.kisi-kpi .value-box-showcase > *, .kisi-kpi .value-box-showcase svg { width: 2.25rem !important; height: 2.25rem !important;
-                                                                         max-height: 2.25rem !important; font-size: 2.25rem; }
+.kisi-kpi > .kpi-kartu { margin: 0; }
 .bslib-value-box .value-box-value { font-size: clamp(1.4rem, 1.1rem + 1.2vw, 2rem); line-height: 1.15; }
 
 /* ---------- grid umum 1 kolom ---------- */

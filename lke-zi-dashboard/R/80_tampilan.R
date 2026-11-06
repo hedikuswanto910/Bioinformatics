@@ -59,15 +59,20 @@ h1, h2, h3, h4, h5 { color: {{judul}}; font-weight: 700; }
 .card > .card-header .btn { color: #fff; border-color: rgba(255,255,255,.6); }
 .card > .card-header .btn:hover { background: rgba(255,255,255,.15); }
 
-/* Kotak angka: merah marun penuh seperti 'FKUH Dalam Angka' */
-.bslib-value-box.vb-marun { background: linear-gradient(135deg, {{marun2}} 0%, {{marun}} 55%, {{gelap}} 100%) !important;
-                            color: #fff !important; border-bottom: 4px solid {{emas}}; box-shadow: 0 8px 20px rgba(78,7,0,.28);
-                            transition: transform .2s ease, box-shadow .2s ease; }
-.bslib-value-box.vb-marun:hover { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(78,7,0,.35); }
-.bslib-value-box.vb-marun .value-box-showcase, .bslib-value-box.vb-marun .value-box-showcase * {
-  color: {{emas}} !important; fill: {{emas}} !important; background: none !important; -webkit-text-fill-color: {{emas}} !important; }
-.bslib-value-box.vb-marun .value-box-title { color: rgba(255,255,255,.85); }
-.bslib-value-box.vb-marun .value-box-showcase { font-size: 1.6rem; opacity: .95; }
+/* Kartu KPI: merah marun, rata tengah (ikon kecil -> angka -> keterangan),
+   mengikuti kartu 'FKUH Dalam Angka' di situs fakultas */
+.kpi-kartu { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  gap: .35rem; padding: 1.1rem 1rem 1.2rem; min-height: 9rem; border-radius: 12px; color: #fff;
+  background: linear-gradient(135deg, {{marun2}} 0%, {{marun}} 55%, {{gelap}} 100%);
+  border-bottom: 4px solid {{emas}}; box-shadow: 0 8px 20px rgba(78,7,0,.28);
+  transition: transform .2s ease, box-shadow .2s ease; }
+.kpi-kartu:hover { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(78,7,0,.35); }
+.kpi-kartu .kpi-ikon { display: inline-flex; align-items: center; justify-content: center; width: 2.6rem; height: 2.6rem;
+  border-radius: 50%; background: rgba(249,176,61,.16); color: {{emas}}; font-size: 1.2rem; }
+.kpi-kartu .kpi-ikon svg { width: 1.2rem; height: 1.2rem; fill: currentColor; }
+.kpi-kartu .kpi-nilai { font-size: clamp(1.5rem, 1.2rem + 1vw, 2.1rem); font-weight: 700; line-height: 1.1; color: #fff; }
+.kpi-kartu .kpi-nilai .shiny-text-output { display: inline; }
+.kpi-kartu .kpi-judul { font-size: .9rem; color: rgba(255,255,255,.85); line-height: 1.3; }
 
 /* Tata letak dengan panel samping */
 .bslib-sidebar-layout { border: 0 !important; border-radius: 12px; background: #fff !important;
