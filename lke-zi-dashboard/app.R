@@ -74,20 +74,21 @@ ui <- page_navbar(
   id = "nav",
   title = "LKE Zona Integritas",
   theme = tema_aplikasi(),
-  bg = WARNA$navy, inverse = TRUE,
+  bg = WARNA$merah, inverse = TRUE,
   fillable = FALSE,  # halaman bisa di-scroll; tabel tidak terjepit
   window_title = paste("LKE ZI -", KONFIG$unit),
   header = tagList(tags$head(tags$style(HTML(CSS_APLIKASI)), tags$style(HTML(CSS_HEADER)),
                              tags$script(HTML(JS_APLIKASI)), tags$script(HTML(JS_HEADER))),
                    banner_ui()),
+  footer = kaki_ui(),
 
   # ---------------------------------------------------------------- Beranda
   nav_panel("Beranda",
     layout_columns(fill = FALSE,
-      value_box("Nilai klaim Pengungkit", textOutput("vb_pengungkit"), showcase = icon("gauge-high"), theme = "bg-gradient-indigo-teal"),
-      value_box("Nilai klaim Hasil", textOutput("vb_hasil"), showcase = icon("chart-line"), theme = "bg-gradient-blue-indigo"),
-      value_box("Butir siap (hijau)", textOutput("vb_hijau"), showcase = icon("circle-check"), theme = "bg-gradient-teal-green"),
-      value_box("Butir perlu perbaikan", textOutput("vb_merah"), showcase = icon("triangle-exclamation"), theme = "bg-gradient-orange-red")
+      value_box("Nilai klaim Pengungkit", textOutput("vb_pengungkit"), showcase = icon("gauge-high"), class = "vb-marun"),
+      value_box("Nilai klaim Hasil", textOutput("vb_hasil"), showcase = icon("chart-line"), class = "vb-marun"),
+      value_box("Butir siap (hijau)", textOutput("vb_hijau"), showcase = icon("circle-check"), class = "vb-marun"),
+      value_box("Butir perlu perbaikan", textOutput("vb_merah"), showcase = icon("triangle-exclamation"), class = "vb-marun")
     ),
     layout_columns(col_widths = c(7, 5),
       card(card_header("Klaim saat ini vs penilaian evaluator sebelumnya (% dari bobot)"),
@@ -263,7 +264,7 @@ server <- function(input, output, session) {
     d$komponen <- factor(d$komponen, rev(sort(unique(d$komponen))))
     ggplot2::ggplot(d, ggplot2::aes(x = persen, y = komponen, fill = sumber)) +
       ggplot2::geom_col(position = ggplot2::position_dodge(width = 0.8), width = 0.75) +
-      ggplot2::scale_fill_manual(values = c("Klaim unit (lalu)" = "#9CC9D0", "TPI (lalu)" = "#F2A541", "Klaim saat ini" = WARNA$navy), drop = TRUE) +
+      ggplot2::scale_fill_manual(values = c("Klaim unit (lalu)" = "#E8B4AE", "TPI (lalu)" = WARNA$emas, "Klaim saat ini" = WARNA$marun), drop = TRUE) +
       ggplot2::scale_x_continuous(limits = c(0, 100), expand = c(0, 0)) +
       ggplot2::labs(x = "% dari bobot komponen", y = NULL, fill = NULL) +
       ggplot2::theme_minimal(base_size = 12) + ggplot2::theme(legend.position = "top", panel.grid.major.y = ggplot2::element_blank())

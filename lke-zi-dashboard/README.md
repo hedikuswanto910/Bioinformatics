@@ -75,6 +75,12 @@ Model bawaan: `claude-opus-5-5` (bisa diganti lewat `ZI_CLAUDE_MODEL`). Bila fil
 
 **Privasi**: narasi dan PDF yang dikirim ke Claude diproses oleh Anthropic. Jangan kirim dokumen berisi data pribadi sensitif (NIK, data kesehatan, rincian LHKPN). Mintalah persetujuan pimpinan/unit TI sebelum dipakai.
 
+## Tampilan
+
+- Tema mengikuti situs med.unhas.ac.id: ribbon merah `#A80C0D` yang menempel di atas saat di-scroll (dengan efek hover), kartu merah marun `#690A08`, aksen emas `#F9B03D`, judul biru tua `#162232`, font Roboto.
+- Banner tampil penuh di Beranda dan menjadi pita tipis di menu lain.
+- Ganti logo dan banner lewat **Pengaturan -> Tampilan header**. File disimpan di `www/kustom/` dan sengaja tidak ikut ke GitHub (repo publik; banner fakultas memuat foto pimpinan).
+
 ## Aturan validasi otomatis
 
 | Kode | Tingkat | Aturan |
@@ -113,7 +119,7 @@ R/40_penyimpanan.R     SQLite + jejak + log AI
 R/50_ekspor.R          Excel & Word
 R/60_sop.R             pemeriksa daftar PM & PDF SOP
 R/70_impor.R           pembaca template LKE Excel
-R/80_tampilan.R        tema warna, CSS, header & ribbon (ubah daftar WARNA untuk ganti tema)
+R/80_tampilan.R        tema merah-marun-emas (acuan med.unhas.ac.id), header & ribbon; ubah daftar WARNA untuk ganti tema
 www/gambar/            logo & banner bawaan (www/kustom/ = unggahan Anda, tidak di-commit)
 data/rubrik_lke.csv    113 butir + 24 rincian, kriteria & bobot (publik)
 data/lokal/            data internal unit (TIDAK di-commit)

@@ -1,91 +1,121 @@
 # =============================================================================
-# 80_tampilan.R - Tema warna, gaya (CSS), dan elemen tampilan
+# 80_tampilan.R - Tema warna, gaya (CSS), header, dan elemen tampilan
 # -----------------------------------------------------------------------------
-# Tema "Samudra Integritas": latar gradasi biru tua -> teal, kartu putih
-# melayang, aksen emas. Ganti warna di daftar WARNA untuk mengubah tema.
+# Tema mengacu pada situs med.unhas.ac.id: ribbon merah, kartu merah marun,
+# aksen emas/oranye, judul biru tua. Warna diambil dari tangkapan layar situs.
+# Ganti nilai di daftar WARNA untuk mengubah seluruh tema.
 # =============================================================================
 
 WARNA <- list(
-  navy  = "#0B2545",   # biru tua utama
-  biru  = "#134074",
-  teal  = "#13838F",
-  mint  = "#E6F4F1",
-  emas  = "#F2A541",   # aksen
-  latar = "#F4F8FB",   # latar panel samping
-  pita  = "#0B2545",   # warna ribbon menu
-  atas  = "#071A31"    # warna bilah info paling atas
+  merah    = "#A80C0D",   # ribbon menu
+  marun    = "#690A08",   # kartu
+  marun2   = "#8E0F12",   # gradasi kartu (lebih terang)
+  gelap    = "#4E0700",   # bayangan/gradasi tergelap
+  emas     = "#F9B03D",   # aksen
+  oranye   = "#EFA119",
+  judul    = "#162232",   # teks judul (biru tua)
+  latar    = "#F8F1EF",   # latar halaman (krem kemerahan, bukan putih)
+  muda     = "#FDECEA",   # latar lembut (chip kode, kotak keterangan)
+  samping  = "#FFF9F7"    # panel samping
 )
+
+# Ganti {{nama}} di teks CSS/JS dengan warna dari daftar WARNA
+isi_warna <- function(teks) {
+  for (n in names(WARNA)) teks <- gsub(paste0("{{", n, "}}"), WARNA[[n]], teks, fixed = TRUE)
+  teks
+}
 
 tema_aplikasi <- function() {
   bslib::bs_theme(
     version = 5,
-    primary = WARNA$teal, secondary = WARNA$biru, success = "#2E9E6B",
-    warning = WARNA$emas, danger = "#D64550", info = "#3A86C8",
-    blue = WARNA$biru, teal = WARNA$teal, indigo = WARNA$navy, orange = WARNA$emas,
-    base_font = bslib::font_collection(bslib::font_google("Plus Jakarta Sans", local = FALSE),
-                                "Segoe UI", "Roboto", "sans-serif"),
-    "border-radius" = "0.75rem"
+    primary = WARNA$merah, secondary = WARNA$marun, success = "#2E8B57",
+    warning = WARNA$emas, danger = "#C62828", info = "#2F6FA8",
+    red = WARNA$merah, orange = WARNA$oranye, yellow = WARNA$emas,
+    "headings-color" = WARNA$judul,
+    base_font = bslib::font_collection(bslib::font_google("Roboto", local = FALSE),
+                                       "Segoe UI", "Helvetica Neue", "Arial", "sans-serif"),
+    "border-radius" = "0.65rem"
   )
 }
 
-CSS_APLIKASI <- sprintf("
+CSS_APLIKASI <- isi_warna("
 body {
-  background:
-    radial-gradient(circle at 12%% -10%%, rgba(58,134,200,.55) 0%%, transparent 45%%),
-    radial-gradient(circle at 95%% 110%%, rgba(242,165,65,.30) 0%%, transparent 40%%),
-    linear-gradient(160deg, %1$s 0%%, %2$s 45%%, %3$s 100%%);
+  background-color: {{latar}};
+  background-image:
+    radial-gradient(circle at 0% 0%, rgba(168,12,13,.10) 0%, transparent 35%),
+    radial-gradient(circle at 100% 100%, rgba(249,176,61,.16) 0%, transparent 35%),
+    radial-gradient(rgba(105,10,8,.07) 1px, transparent 1px);
+  background-size: auto, auto, 22px 22px;
   background-attachment: fixed;
-  min-height: 100vh;
+  color: #2b2b2b;
 }
-/* Kartu melayang */
-.card { border: 0; border-radius: 16px; box-shadow: 0 10px 28px rgba(5,20,40,.28); }
-.card > .card-header { background: linear-gradient(90deg, %1$s, %3$s); color: #fff; font-weight: 600;
-                       border-bottom: 0; border-radius: 16px 16px 0 0 !important; }
+h1, h2, h3, h4, h5 { color: {{judul}}; font-weight: 700; }
+
+/* Kartu: kepala merah marun seperti kartu di situs fakultas */
+.card { border: 0; border-radius: 12px; box-shadow: 0 6px 18px rgba(78,7,0,.14); background: #fff; }
+.card > .card-header { background: linear-gradient(120deg, {{marun2}} 0%, {{marun}} 60%, {{gelap}} 100%);
+                       color: #fff; font-weight: 600; border-bottom: 3px solid {{emas}};
+                       border-radius: 12px 12px 0 0 !important; }
 .card > .card-header .btn { color: #fff; border-color: rgba(255,255,255,.6); }
 .card > .card-header .btn:hover { background: rgba(255,255,255,.15); }
-.bslib-value-box { box-shadow: 0 10px 28px rgba(5,20,40,.35); }
+
+/* Kotak angka: merah marun penuh seperti 'FKUH Dalam Angka' */
+.bslib-value-box.vb-marun { background: linear-gradient(135deg, {{marun2}} 0%, {{marun}} 55%, {{gelap}} 100%) !important;
+                            color: #fff !important; border-bottom: 4px solid {{emas}}; box-shadow: 0 8px 20px rgba(78,7,0,.28);
+                            transition: transform .2s ease, box-shadow .2s ease; }
+.bslib-value-box.vb-marun:hover { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(78,7,0,.35); }
+.bslib-value-box.vb-marun .value-box-showcase, .bslib-value-box.vb-marun .value-box-showcase * {
+  color: {{emas}} !important; fill: {{emas}} !important; background: none !important; -webkit-text-fill-color: {{emas}} !important; }
+.bslib-value-box.vb-marun .value-box-title { color: rgba(255,255,255,.85); }
 
 /* Tata letak dengan panel samping */
-.bslib-sidebar-layout { border: 0 !important; border-radius: 16px; background: transparent !important;
-                        box-shadow: 0 10px 28px rgba(5,20,40,.28); }
-.bslib-sidebar-layout > .sidebar { background: %5$s !important; border-right: 0 !important; }
-.bslib-sidebar-layout > .main { background: rgba(255,255,255,.06); }
-.bslib-sidebar-layout > .collapse-toggle { color: %1$s; }
+.bslib-sidebar-layout { border: 0 !important; border-radius: 12px; background: #fff !important;
+                        box-shadow: 0 6px 18px rgba(78,7,0,.14); }
+.bslib-sidebar-layout > .sidebar { background: {{samping}} !important; border-right: 1px solid #f0dcd8 !important; }
+.bslib-sidebar-layout > .main { background: {{latar}}; }
+.bslib-sidebar-layout > .collapse-toggle { color: {{marun}}; }
 
 /* Kode butir */
-code.kode { background: %6$s; color: #0B5563; padding: 1px 7px; border-radius: 6px;
+code.kode { background: {{muda}}; color: {{marun}}; padding: 1px 7px; border-radius: 6px;
             font-weight: 700; font-size: .78rem; white-space: nowrap; }
-.kode-besar { font-size: 1rem !important; padding: 3px 10px !important; }
-.keterangan { background: %6$s; border-left: 5px solid %3$s; border-radius: 10px;
+.kode-besar { font-size: 1rem !important; padding: 3px 10px !important; background: {{emas}} !important; color: {{gelap}} !important; }
+.keterangan { background: {{muda}}; border-left: 5px solid {{merah}}; border-radius: 10px;
               padding: .75rem 1rem; margin: .25rem 0 1rem 0; }
-.keterangan .label { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: %3$s; font-weight: 700; }
+.keterangan .label { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: {{merah}}; font-weight: 700; }
+.keterangan .fs-5 { color: {{judul}}; font-weight: 600; }
 
 /* Dropdown per zona */
-.accordion-zona .accordion-item { border: 0; margin-bottom: .45rem; border-radius: 12px !important; overflow: hidden;
-                                  box-shadow: 0 1px 4px rgba(11,37,69,.12); }
-.accordion-zona .accordion-button { background: #fff; font-weight: 600; font-size: .88rem; padding: .6rem .8rem; color: %1$s; }
-.accordion-zona .accordion-button:not(.collapsed) { background: linear-gradient(90deg, %1$s, %2$s); color: #fff; box-shadow: none; }
+.accordion-zona .accordion-item { border: 0; margin-bottom: .45rem; border-radius: 10px !important; overflow: hidden;
+                                  box-shadow: 0 1px 4px rgba(78,7,0,.15); }
+.accordion-zona .accordion-button { background: #fff; font-weight: 600; font-size: .88rem; padding: .6rem .8rem; color: {{judul}}; }
+.accordion-zona .accordion-button:hover { background: {{muda}}; }
+.accordion-zona .accordion-button:not(.collapsed) { background: linear-gradient(120deg, {{marun2}}, {{marun}}); color: #fff; box-shadow: none; }
 .accordion-zona .accordion-button:not(.collapsed)::after { filter: invert(1) brightness(2); }
 .accordion-zona .accordion-body { padding: .4rem .35rem .6rem .35rem; background: #fff; max-height: 52vh; overflow-y: auto; }
-.judul-zona { display: flex; flex-direction: column; gap: 2px; width: 100%%; }
+.judul-zona { display: flex; flex-direction: column; gap: 2px; width: 100%; }
 .hitung { display: flex; gap: 4px; }
 .hitung span { font-size: .68rem; font-weight: 700; border-radius: 10px; padding: 0 7px; color: #fff; }
 .sub-bagian { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em;
-              color: %3$s; margin: .5rem .4rem .15rem .4rem; }
-.sub-komponen { font-size: .72rem; color: #5b6b7c; margin: .3rem .5rem .1rem .5rem; font-style: italic; }
+              color: {{merah}}; margin: .5rem .4rem .15rem .4rem; }
+.sub-komponen { font-size: .72rem; color: #7a6461; margin: .3rem .5rem .1rem .5rem; font-style: italic; }
 a.item-butir { display: flex; gap: .45rem; align-items: flex-start; padding: .32rem .5rem; border-radius: 8px;
-               color: #1b2a3a; text-decoration: none; font-size: .82rem; line-height: 1.25; }
-a.item-butir:hover { background: #E3EEF7; }
-a.item-butir.aktif { background: %1$s; color: #fff; }
-a.item-butir.aktif code.kode { background: %4$s; color: %1$s; }
-.titik { width: 10px; height: 10px; border-radius: 50%%; flex: none; margin-top: 4px; }
+               color: #2b2b2b; text-decoration: none; font-size: .82rem; line-height: 1.25; transition: background .15s ease; }
+a.item-butir:hover { background: {{muda}}; }
+a.item-butir.aktif { background: {{marun}}; color: #fff; }
+a.item-butir.aktif code.kode { background: {{emas}}; color: {{gelap}}; }
+.titik { width: 10px; height: 10px; border-radius: 50%; flex: none; margin-top: 4px; box-shadow: 0 0 0 2px #fff; }
 
 /* Tabel */
-table.dataTable thead th { background: %1$s; color: #fff; }
-table.dataTable tbody tr.selected td { box-shadow: inset 0 0 0 9999px rgba(19,131,143,.25) !important; }
+table.dataTable thead th { background: {{marun}}; color: #fff; }
+table.dataTable tbody tr:hover td { background: {{muda}}; }
+table.dataTable tbody tr.selected td { box-shadow: inset 0 0 0 9999px rgba(249,176,61,.30) !important; }
 .kriteria td { vertical-align: top; padding: 4px 8px; }
-.accordion-button:not(.collapsed) { background: %6$s; color: %1$s; }
-", WARNA$navy, WARNA$biru, WARNA$teal, WARNA$emas, WARNA$latar, WARNA$mint)
+.accordion-button:not(.collapsed) { background: {{muda}}; color: {{marun}}; }
+
+/* Tombol */
+.btn-primary { background: {{merah}}; border-color: {{merah}}; }
+.btn-primary:hover { background: {{marun}}; border-color: {{marun}}; }
+")
 
 # JavaScript kecil: menandai butir aktif di daftar tanpa menggambar ulang daftar
 JS_APLIKASI <- "
@@ -113,103 +143,117 @@ butir_html <- function(kode, pertanyaan, n = 55) {
           htmltools::htmlEscape(ringkas_teks(pertanyaan, n)))
 }
 
-label_zona <- function(b) {
-  if (b$bagian[1] == "Hasil") "Hasil" else sprintf("Zona %d", b$komponen_no[1])
+# =============================================================================
+# Header ala med.unhas.ac.id:
+#   ribbon merah di paling atas (menempel saat di-scroll, efek hover)
+#   -> banner/gambar utama di bawahnya.
+# Banner tampil penuh di Beranda dan menjadi pita tipis di menu lain agar
+# tidak menghabiskan layar saat mengisi LKE.
+# Logo & banner diganti dari menu Pengaturan (disimpan di www/kustom/, tidak
+# ikut ke GitHub) atau dengan menaruh file logo.* / header.* di folder itu.
+# =============================================================================
+
+gambar_kustom <- function(jenis) {
+  f <- list.files("www/kustom", pattern = paste0("^", jenis, "\\.(png|jpe?g|svg|webp)$"), ignore.case = TRUE)
+  if (length(f)) file.path("www/kustom", f[1]) else NA_character_
 }
 
-# =============================================================================
-# Header ala situs fakultas: bilah info atas -> banner bergambar + logo ->
-# ribbon menu yang menempel (fixed/sticky) di atas layar saat di-scroll.
-# Logo & gambar banner bisa diganti dari menu Pengaturan (disimpan di
-# www/kustom/, tidak ikut ke GitHub) atau dengan menaruh file di folder itu.
-# =============================================================================
-
-# Cari gambar kustom; bila tidak ada pakai bawaan
 gambar_tampilan <- function(jenis = c("logo", "header")) {
   jenis <- match.arg(jenis)
-  f <- list.files("www/kustom", pattern = paste0("^", jenis, "\\.(png|jpe?g|svg|webp)$"), ignore.case = TRUE)
-  if (length(f)) paste0("kustom/", f[1], "?v=", as.integer(file.mtime(file.path("www/kustom", f[1]))))
+  f <- gambar_kustom(jenis)
+  if (!is.na(f)) paste0("kustom/", basename(f), "?v=", as.integer(file.mtime(f)))
   else paste0("gambar/", jenis, "_bawaan.svg")
 }
 
 banner_ui <- function() {
-  htmltools::div(id = "banner-situs",
-    htmltools::div(class = "bilah-atas",
-      htmltools::div(class = "isi",
-        htmltools::span("Zona Integritas menuju WBK/WBBM"),
-        if (nzchar(KONFIG$alamat)) htmltools::span(class = "pisah", KONFIG$alamat),
-        if (nzchar(KONFIG$email)) htmltools::span(class = "pisah", KONFIG$email),
-        htmltools::span(class = "kanan", id = "tanggal-hari-ini"))),
-    htmltools::div(class = "banner", id = "banner-gambar",
-                   style = sprintf("background-image: url('%s');", gambar_tampilan("header")),
-      htmltools::div(class = "lapis"),
-      htmltools::div(class = "isi",
-        htmltools::img(src = gambar_tampilan("logo"), class = "logo", id = "logo-banner", alt = "Logo"),
-        htmltools::div(class = "teks",
-          htmltools::div(class = "nama-unit", KONFIG$unit),
-          htmltools::div(class = "subjudul", "Dashboard Lembar Kerja Evaluasi Zona Integritas"),
-          htmltools::span(class = "pil-tahun", paste("Tahun penilaian", KONFIG$tahun))))))
+  bawaan <- is.na(gambar_kustom("header"))
+  htmltools::div(id = "banner-situs", class = if (bawaan) "pakai-bawaan",
+    htmltools::span(id = "sumber-logo", `data-src` = gambar_tampilan("logo"), style = "display:none"),
+    htmltools::div(class = "bingkai",
+      htmltools::img(src = gambar_tampilan("header"), id = "gambar-banner", alt = "Banner"),
+      htmltools::div(class = "keterangan-banner",
+        htmltools::div(class = "nama-unit", KONFIG$unit),
+        htmltools::div(class = "subjudul", "Dashboard Lembar Kerja Evaluasi Zona Integritas menuju WBK/WBBM"),
+        htmltools::span(class = "pil-tahun", paste("Tahun penilaian", KONFIG$tahun)))))
 }
 
-CSS_HEADER <- sprintf("
-/* --- bilah info atas --- */
-#banner-situs .bilah-atas { background: %1$s; color: rgba(255,255,255,.75); font-size: .78rem; }
-#banner-situs .bilah-atas .isi { display: flex; gap: 1.2rem; padding: .35rem 1.5rem; flex-wrap: wrap; }
-#banner-situs .bilah-atas .pisah::before { content: '|'; margin-right: 1.2rem; opacity: .4; }
-#banner-situs .bilah-atas .kanan { margin-left: auto; }
+kaki_ui <- function() {
+  info <- c(KONFIG$alamat, KONFIG$email)
+  htmltools::div(class = "kaki-situs",
+    htmltools::div(htmltools::tags$b(KONFIG$unit), htmltools::br(), "Dashboard LKE Zona Integritas menuju WBK/WBBM"),
+    htmltools::div(class = "kanan", lapply(info[nzchar(info)], htmltools::div)))
+}
 
-/* --- banner bergambar --- */
-#banner-situs .banner { position: relative; min-height: 170px; background-size: cover; background-position: center;
-                        display: flex; align-items: center; }
-#banner-situs .banner .lapis { position: absolute; inset: 0;
-  background: linear-gradient(90deg, rgba(7,26,49,.88) 0%%, rgba(11,37,69,.55) 55%%, rgba(11,37,69,.15) 100%%); }
-#banner-situs .banner .isi { position: relative; display: flex; align-items: center; gap: 1.25rem; padding: 1.4rem 1.5rem; }
-#banner-situs .logo { height: 96px; width: auto; filter: drop-shadow(0 4px 10px rgba(0,0,0,.35)); }
-#banner-situs .nama-unit { color: #fff; font-size: 1.75rem; font-weight: 800; line-height: 1.15; letter-spacing: .2px;
-                           text-shadow: 0 2px 8px rgba(0,0,0,.35); }
-#banner-situs .subjudul { color: rgba(255,255,255,.85); font-size: 1.02rem; margin-top: .2rem; }
-#banner-situs .pil-tahun { display: inline-block; margin-top: .5rem; background: %3$s; color: %2$s; font-weight: 700;
-                           font-size: .75rem; padding: 2px 12px; border-radius: 20px; }
-
-/* --- ribbon menu yang menempel --- */
-body.bslib-page-navbar > nav.navbar { position: sticky; top: 0; z-index: 1030;
-  background: %2$s !important; border-bottom: 3px solid %3$s; padding-top: 0; padding-bottom: 0;
-  transition: box-shadow .25s ease; }
-body.pita-lekat > nav.navbar { box-shadow: 0 6px 18px rgba(0,0,0,.40); }
-nav.navbar .navbar-brand { color: #fff !important; font-weight: 800; display: flex; align-items: center; gap: .5rem;
-                           max-width: 0; overflow: hidden; opacity: 0; padding: 0; margin: 0;
-                           transition: max-width .35s ease, opacity .35s ease, margin .35s ease; white-space: nowrap; }
-body.pita-lekat nav.navbar .navbar-brand { max-width: 260px; opacity: 1; margin-right: 1rem; }
-nav.navbar .navbar-brand img { height: 30px; }
+CSS_HEADER <- isi_warna("
+/* --- ribbon merah: menempel di atas, seperti menu situs fakultas --- */
+body.bslib-page-navbar > nav.navbar { position: sticky; top: 0; z-index: 1030; background: {{merah}} !important;
+  padding-top: 0; padding-bottom: 0; min-height: 64px; transition: box-shadow .25s ease, min-height .25s ease; }
+body.pita-lekat > nav.navbar { box-shadow: 0 6px 18px rgba(78,7,0,.45); min-height: 56px; }
+nav.navbar .navbar-brand { color: #fff !important; font-weight: 800; display: flex; align-items: center; gap: .55rem;
+                           font-size: 1.05rem; margin-right: 1.5rem; }
+nav.navbar .navbar-brand img { height: 38px; transition: height .25s ease; }
+body.pita-lekat nav.navbar .navbar-brand img { height: 32px; }
 nav.navbar .nav-underline { gap: 0; }
-nav.navbar .nav-link { position: relative; color: rgba(255,255,255,.82) !important; font-weight: 600; font-size: .92rem;
-                       padding: .95rem 1rem !important; border: 0 !important; transition: background .2s ease, color .2s ease; }
-nav.navbar .nav-link::after { content: ''; position: absolute; left: 50%%; right: 50%%; bottom: 0; height: 3px;
-                              background: %3$s; transition: left .25s ease, right .25s ease; }
-nav.navbar .nav-link:hover { color: #fff !important; background: rgba(255,255,255,.10); }
-nav.navbar .nav-link:hover::after { left: 12%%; right: 12%%; }
-nav.navbar .nav-link.active { color: %3$s !important; background: rgba(255,255,255,.06); }
+nav.navbar .nav-link { position: relative; color: #fff !important; font-weight: 600; font-size: .95rem;
+                       padding: 1.15rem .95rem !important; border: 0 !important;
+                       transition: background .2s ease, color .2s ease; }
+nav.navbar .nav-link::after { content: ''; position: absolute; left: 50%; right: 50%; bottom: 0; height: 4px;
+                              background: {{emas}}; border-radius: 4px 4px 0 0; transition: left .25s ease, right .25s ease; }
+nav.navbar .nav-link:hover { background: rgba(0,0,0,.16); color: {{emas}} !important; }
+nav.navbar .nav-link:hover::after { left: 14%; right: 14%; }
+nav.navbar .nav-link.active { color: {{emas}} !important; background: rgba(0,0,0,.22); }
 nav.navbar .nav-link.active::after { left: 0; right: 0; }
-@media (max-width: 991px) { #banner-situs .nama-unit { font-size: 1.25rem; } #banner-situs .logo { height: 64px; } }
-", WARNA$atas, WARNA$pita, WARNA$emas)
+
+/* --- banner/gambar utama --- */
+#banner-situs { padding: 1rem 1rem .25rem 1rem; margin-bottom: 1rem; }
+#banner-situs .bingkai { position: relative; border-radius: 12px; overflow: hidden; background: {{gelap}};
+                         box-shadow: 0 10px 26px rgba(78,7,0,.30); }
+#gambar-banner { display: block; width: 100%; height: auto; max-height: 560px; object-fit: cover; object-position: center 30%;
+                 transition: max-height .35s ease, height .35s ease; }
+#banner-situs .keterangan-banner { position: absolute; left: 0; top: 0; bottom: 0; display: none; flex-direction: column;
+  justify-content: center; padding: 1.5rem 2.25rem; max-width: 70%; }
+#banner-situs.pakai-bawaan .keterangan-banner { display: flex; }
+#banner-situs .nama-unit { color: #fff; font-size: 2rem; font-weight: 800; line-height: 1.15; text-shadow: 0 2px 10px rgba(0,0,0,.4); }
+#banner-situs .subjudul { color: {{emas}}; font-size: 1.1rem; font-weight: 700; margin-top: .35rem; }
+#banner-situs .pil-tahun { align-self: flex-start; margin-top: .7rem; background: {{emas}}; color: {{gelap}}; font-weight: 800;
+                           font-size: .78rem; padding: 3px 14px; border-radius: 20px; }
+/* Menu selain Beranda: banner jadi pita tipis */
+body.banner-ringkas #gambar-banner { height: 120px; max-height: 120px; object-position: center 22%; }
+body.banner-ringkas #banner-situs .nama-unit { font-size: 1.3rem; }
+body.banner-ringkas #banner-situs .subjudul, body.banner-ringkas #banner-situs .pil-tahun { display: none; }
+
+/* --- kaki halaman --- */
+.kaki-situs { margin-top: 2rem; background: {{marun}}; color: rgba(255,255,255,.88); padding: 1.25rem 1.5rem;
+              display: flex; gap: 2rem; flex-wrap: wrap; border-top: 4px solid {{emas}}; font-size: .85rem; }
+.kaki-situs .kanan { margin-left: auto; text-align: right; }
+@media (max-width: 991px) { #banner-situs .nama-unit { font-size: 1.3rem; } #banner-situs .keterangan-banner { max-width: 100%; } }
+")
 
 JS_HEADER <- "
 document.addEventListener('DOMContentLoaded', function() {
   var banner = document.getElementById('banner-situs');
   var nav = document.querySelector('body > nav.navbar');
-  if (banner && nav) document.body.insertBefore(banner, nav);
+  if (banner && nav) nav.after(banner);
   var brand = nav ? nav.querySelector('.navbar-brand') : null;
-  var logo = document.getElementById('logo-banner');
-  if (brand && logo) { var kecil = logo.cloneNode(); kecil.removeAttribute('id'); kecil.className = 'logo-kecil'; brand.prepend(kecil); }
-  var tgl = document.getElementById('tanggal-hari-ini');
-  if (tgl) tgl.textContent = new Date().toLocaleDateString('id-ID', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'});
-  if (banner && 'IntersectionObserver' in window) {
-    new IntersectionObserver(function(e) { document.body.classList.toggle('pita-lekat', !e[0].isIntersecting); },
-                             {threshold: 0}).observe(banner);
-  }
+  if (brand) { var img = document.createElement('img'); img.className = 'logo-kecil'; img.alt = 'Logo';
+               var sl = document.getElementById('sumber-logo'); img.src = sl ? sl.dataset.src : 'gambar/logo_bawaan.svg'; brand.prepend(img); }
+  var atur = function() {
+    var aktif = document.querySelector('#nav .nav-link.active');
+    document.body.classList.toggle('banner-ringkas', !!aktif && aktif.dataset.value !== 'Beranda');
+  };
+  document.querySelectorAll('#nav .nav-link').forEach(function(a) { a.addEventListener('shown.bs.tab', atur); });
+  atur();
+  window.addEventListener('scroll', function() { document.body.classList.toggle('pita-lekat', window.scrollY > 10); }, {passive: true});
+});
+$(document).on('shown.bs.tab', '#nav .nav-link', function(e) {
+  document.body.classList.toggle('banner-ringkas', e.target.dataset.value !== 'Beranda');
 });
 Shiny.addCustomMessageHandler('ganti_gambar', function(m) {
-  if (m.jenis === 'logo') document.querySelectorAll('#logo-banner, nav.navbar .logo-kecil').forEach(function(i) { i.src = m.url; });
-  else document.getElementById('banner-gambar').style.backgroundImage = 'url(' + JSON.stringify(m.url) + ')';
+  if (m.jenis === 'logo') {
+    document.querySelectorAll('nav.navbar .logo-kecil').forEach(function(i) { i.src = m.url; });
+  } else {
+    document.getElementById('gambar-banner').src = m.url;
+    document.getElementById('banner-situs').classList.toggle('pakai-bawaan', m.url.indexOf('gambar/') === 0);
+  }
 });
 "
