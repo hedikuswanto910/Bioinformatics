@@ -16,12 +16,43 @@ RB$grup <- ifelse(RB$bagian == "Hasil", RB$area_kode, paste0(RB$area_kode, RB$ko
 BUTIR <- RB[RB$tipe == "butir", ]
 BUTIR <- BUTIR[order(BUTIR$baris_excel), ]
 
+BUTIR$zona <- ifelse(BUTIR$bagian == "Hasil", "H", paste0("Z", BUTIR$komponen_no))
+BUTIR$nama_zona <- ifelse(BUTIR$bagian == "Hasil", "Hasil", paste("Zona", BUTIR$komponen_no))
+BUTIR$judul <- ringkas_teks(BUTIR$pertanyaan)
+ZONA <- unique(BUTIR[, c("zona", "nama_zona", "komponen")])
+ZONA$komponen[ZONA$zona == "H"] <- "Survei & Capaian Kinerja"
+ZONA <- ZONA[!duplicated(ZONA$zona), ]
+
 LAMBANG <- c(`belum diisi` = "\u26AA", merah = "\U0001F534", kuning = "\U0001F7E1", hijau = "\U0001F7E2")
 WARNA_STATUS <- c(`belum diisi` = "#6c757d", merah = "#dc3545", kuning = "#e0a800", hijau = "#198754")
 
-pilihan_grup <- function(area) {
-  x <- unique(BUTIR[BUTIR$area_kode %in% area | (area == "H" & BUTIR$bagian == "Hasil"), c("grup", "komponen")])
-  stats::setNames(x$grup, paste(sub("^[PRH]", "", x$grup), x$komponen))
+# Daftar butir per zona sebagai dropdown (accordion). Satu panel per zona,
+# di dalamnya dikelompokkan Pemenuhan/Reform dan sub-komponen.
+daftar_zona_ui <- function(x, aktif) {
+  panel <- lapply(seq_len(nrow(ZONA)), function(z) {
+    zn <- ZONA[z, ]; bz <- x[x$zona == zn$zona, ]
+    n <- table(factor(bz$status, names(WARNA_STATUS)))
+    hitung <- div(class = "hitung", lapply(names(WARNA_STATUS), function(s)
+      if (n[[s]] > 0) tags$span(style = paste0("background:", WARNA_STATUS[[s]]), title = s, n[[s]])))
+    judul <- div(class = "judul-zona", span(tags$b(zn$nama_zona), " \u00B7 ", zn$komponen), hitung)
+    isi <- if (nrow(bz) == 0) helpText("Tidak ada butir sesuai filter.") else {
+      tagList(lapply(split(bz, factor(bz$area, unique(bz$area))), function(ba) {
+        tagList(div(class = "sub-bagian", ba$area[1]),
+          lapply(split(ba, factor(ba$sub_nama, unique(ba$sub_nama))), function(bs) {
+            tagList(if (ba$bagian[1] != "Hasil") div(class = "sub-komponen", bs$sub_nama[1]),
+              lapply(seq_len(nrow(bs)), function(i) tags$a(
+                class = paste("item-butir", if (identical(bs$kode[i], aktif)) "aktif"), href = "#",
+                `data-kode` = bs$kode[i], title = bs$pertanyaan[i],
+                onclick = "Shiny.setInputValue('klik_butir', this.dataset.kode, {priority: 'event'}); return false;",
+                span(class = "titik", style = paste0("background:", WARNA_STATUS[[bs$status[i]]])),
+                span(chip_kode(bs$kode[i]), " ", bs$judul[i]))))
+          }))
+      }))
+    }
+    accordion_panel(judul, isi, value = zn$zona)
+  })
+  zona_aktif <- BUTIR$zona[BUTIR$kode == aktif]
+  div(class = "accordion-zona", do.call(accordion, c(panel, list(id = "acc_zona", open = zona_aktif, multiple = FALSE))))
 }
 
 kotak_temuan <- function(tm) {
@@ -42,25 +73,23 @@ teks_pra <- function(...) tags$div(style = "white-space: pre-wrap; font-size: .9
 ui <- page_navbar(
   id = "nav",
   title = "LKE Zona Integritas",
-  theme = bs_theme(version = 5, primary = "#1F3864"),
-  header = tags$head(tags$style(HTML("
-    .daftar-butir .radio label { font-size: .85rem; line-height: 1.25; }
-    .daftar-butir .shiny-options-group { max-height: 62vh; overflow-y: auto; }
-    .kriteria td { vertical-align: top; padding: 4px 8px; }
-  "))),
+  theme = tema_aplikasi(),
+  bg = WARNA$navy, inverse = TRUE,
+  fillable = FALSE,  # halaman bisa di-scroll; tabel tidak terjepit
+  header = tags$head(tags$style(HTML(CSS_APLIKASI)), tags$script(HTML(JS_APLIKASI))),
 
   # ---------------------------------------------------------------- Beranda
   nav_panel("Beranda",
     layout_columns(fill = FALSE,
-      value_box("Nilai klaim Pengungkit", textOutput("vb_pengungkit"), showcase = icon("gauge-high"), theme = "primary"),
-      value_box("Nilai klaim Hasil", textOutput("vb_hasil"), showcase = icon("chart-line"), theme = "secondary"),
-      value_box("Butir siap (hijau)", textOutput("vb_hijau"), showcase = icon("circle-check"), theme = "success"),
-      value_box("Butir perlu perbaikan", textOutput("vb_merah"), showcase = icon("triangle-exclamation"), theme = "danger")
+      value_box("Nilai klaim Pengungkit", textOutput("vb_pengungkit"), showcase = icon("gauge-high"), theme = "bg-gradient-indigo-teal"),
+      value_box("Nilai klaim Hasil", textOutput("vb_hasil"), showcase = icon("chart-line"), theme = "bg-gradient-blue-indigo"),
+      value_box("Butir siap (hijau)", textOutput("vb_hijau"), showcase = icon("circle-check"), theme = "bg-gradient-teal-green"),
+      value_box("Butir perlu perbaikan", textOutput("vb_merah"), showcase = icon("triangle-exclamation"), theme = "bg-gradient-orange-red")
     ),
     layout_columns(col_widths = c(7, 5),
       card(card_header("Klaim saat ini vs penilaian evaluator sebelumnya (% dari bobot)"),
            plotOutput("plot_komponen", height = "420px")),
-      card(card_header("Progres per komponen"), DT::DTOutput("tbl_progres"))
+      card(card_header("Progres per komponen"), DT::DTOutput("tbl_progres", fill = FALSE))
     ),
     card(card_header("Cara memakai"), markdown("
 1. **Isi LKE**: kerjakan butir berurutan. Setiap butir menampilkan kriteria, catatan evaluator periode lalu, dan validasi otomatis yang langsung berubah saat Anda mengetik.
@@ -75,11 +104,12 @@ Nilai di halaman ini adalah **nilai yang diklaim unit**, bukan prediksi nilai ev
   # ---------------------------------------------------------------- Isi LKE
   nav_panel("Isi LKE",
     layout_sidebar(
-      sidebar = sidebar(width = 380,
-        selectInput("f_area", "Area", c("Pemenuhan" = "P", "Reform" = "R", "Hasil" = "H")),
-        selectInput("f_grup", "Komponen", pilihan_grup("P")),
-        selectInput("f_status", "Tampilkan", c("Semua", "belum diisi", "merah", "kuning", "hijau")),
-        div(class = "daftar-butir", uiOutput("ui_daftar_butir"))
+      sidebar = sidebar(width = 400,
+        textInput("f_cari", NULL, placeholder = "Cari kode atau kata, mis. P1.ii atau SOP"),
+        selectInput("f_status", NULL, c("Tampilkan semua status" = "Semua", "Belum diisi" = "belum diisi",
+                                        "Merah" = "merah", "Kuning" = "kuning", "Hijau" = "hijau")),
+        uiOutput("ui_daftar_zona"),
+        helpText("Arahkan kursor ke butir untuk melihat pertanyaan lengkap. Arti kode ada di menu 'Keterangan Kode'.")
       ),
       uiOutput("ui_form")
     )
@@ -91,8 +121,8 @@ Nilai di halaman ini adalah **nilai yang diklaim unit**, bukan prediksi nilai ev
          layout_columns(fill = FALSE, col_widths = c(3, 3),
            selectInput("v_status", "Status", c("Semua", "merah", "kuning", "belum diisi", "hijau")),
            selectInput("v_area", "Area", c("Semua", "Pemenuhan", "Reform", "Hasil"))),
-         DT::DTOutput("tbl_validasi")),
-    card(card_header("Seluruh temuan"), DT::DTOutput("tbl_temuan"))
+         DT::DTOutput("tbl_validasi", fill = FALSE)),
+    card(card_header("Seluruh temuan"), DT::DTOutput("tbl_temuan", fill = FALSE))
   ),
 
   # ---------------------------------------------------------------- Analisis
@@ -105,7 +135,7 @@ Nilai di halaman ini adalah **nilai yang diklaim unit**, bukan prediksi nilai ev
     layout_sidebar(
       sidebar = sidebar(width = 420,
         selectInput("d_jenis", "Jenis dokumen", JENIS_DOKUMEN),
-        selectizeInput("d_butir", "Butir LKE terkait (opsional)", c("(tidak ada)" = "", stats::setNames(BUTIR$kode, paste(BUTIR$kode, substr(BUTIR$pertanyaan, 1, 60))))),
+        selectizeInput("d_butir", "Butir LKE terkait (opsional)", c("(tidak ada)" = "", stats::setNames(BUTIR$kode, paste(BUTIR$kode, "-", BUTIR$judul)))),
         textAreaInput("d_fakta", "Fakta kegiatan yang SUDAH terjadi", rows = 14,
           placeholder = "Contoh:\n- Rapat monev ZI triwulan II, 14 Juli 2026, R. Senat FK\n- Dipimpin Wakil Dekan II; 23 peserta (daftar hadir terlampir)\n- Temuan: 3 SOP belum dievaluasi (Legalisir, Cuti, Peminjaman Ruang)\n- Keputusan: evaluasi selesai 30 Agustus, PIC Kasubag Akademik"),
         actionButton("d_buat", "Buat draf", class = "btn-primary"),
@@ -124,8 +154,8 @@ Nilai di halaman ini adalah **nilai yang diklaim unit**, bukan prediksi nilai ev
         actionButton("s_periksa", "Periksa", class = "btn-primary"),
         helpText("Memeriksa nomor dokumen ganda, nama file vs nomor dokumen, versi daftar vs nomor revisi di PDF, kop 'Halaman x dari N', dan status upload.")
       ),
-      card(card_header("Temuan"), DT::DTOutput("s_temuan")),
-      card(card_header("Isi PDF yang terbaca"), DT::DTOutput("s_pdf_tbl"))
+      card(card_header("Temuan"), DT::DTOutput("s_temuan", fill = FALSE)),
+      card(card_header("Isi PDF yang terbaca"), DT::DTOutput("s_pdf_tbl", fill = FALSE))
     )
   ),
 
@@ -139,6 +169,23 @@ Nilai di halaman ini adalah **nilai yang diklaim unit**, bukan prediksi nilai ev
            p("Ringkasan nilai klaim, status, dan daftar temuan per butir untuk rapat Tim ZI."),
            downloadButton("e_docx", "Unduh Word"))
     )
+  ),
+
+  # ---------------------------------------------------------------- Keterangan
+  nav_panel("Keterangan Kode",
+    card(card_header("Cara membaca kode butir"), markdown("
+Pertanyaan LKE yang panjang ditampilkan sebagai **kode** + judul singkat. Arahkan kursor ke kode untuk melihat pertanyaan lengkap, atau cari di tabel di bawah.
+
+| Contoh | Arti |
+|---|---|
+| `P1.ii.c` | **P**emenuhan, **Zona 1** (Manajemen Perubahan), sub-komponen **ii**, butir **c** |
+| `R5.iii.1.1` | **R**eform, Zona 5, sub-komponen iii, kelompok 1 (LHKPN), butir 1 |
+| `R1.i.a.s2` | rincian ke-2 (angka) dari butir `R1.i.a` |
+| `H1.a` | **H**asil, area 1 (Birokrasi bersih & akuntabel), butir a |
+
+Zona 1-6 sama dengan sheet *Zona 1 ... Zona 6* di file LKE Excel: 1 Manajemen Perubahan, 2 Penataan Tatalaksana, 3 Penataan Sistem Manajemen SDM Aparatur, 4 Penguatan Akuntabilitas, 5 Penguatan Pengawasan, 6 Peningkatan Kualitas Pelayanan Publik.
+")),
+    card(card_header("Daftar kode dan pertanyaan lengkap"), DT::DTOutput("tbl_kode", fill = FALSE))
   ),
 
   # ---------------------------------------------------------------- Pengaturan
@@ -157,11 +204,11 @@ Nilai di halaman ini adalah **nilai yang diklaim unit**, bukan prediksi nilai ev
            fileInput("p_file_riwayat", "Riwayat penilaian evaluator (file yang memuat kolom TP PTN/TPSK/TPI)", accept = ".xlsx"),
            actionButton("p_impor_riwayat", "Impor riwayat"))
     ),
-    card(card_header("Pemakaian Claude"), textOutput("p_biaya"), DT::DTOutput("p_log_ai")),
-    card(card_header("Jejak perubahan"), DT::DTOutput("p_jejak"))
+    card(card_header("Pemakaian Claude"), textOutput("p_biaya"), DT::DTOutput("p_log_ai", fill = FALSE)),
+    card(card_header("Jejak perubahan"), DT::DTOutput("p_jejak", fill = FALSE))
   ),
   nav_spacer(),
-  nav_item(tags$small(class = "text-muted", KONFIG$unit))
+  nav_item(tags$small(class = "unit-kerja", KONFIG$unit))
 )
 
 # =============================================================================
@@ -180,7 +227,6 @@ server <- function(input, output, session) {
   skor    <- reactive(hitung_skor(RB, jawaban_dari_isian(isian())))
   hasil_ai <- reactiveVal(NULL)
   draf_dok <- reactiveVal(NULL)
-  target_butir <- reactiveVal(NULL)               # butir tujuan saat pindah komponen
 
   ambil_isi <- function(kode, kol) { d <- isian(); v <- d[[kol]][d$kode == kode]; if (length(v)) v[1] %||% "" else "" }
   ambil_rw  <- function(kode) { rw <- riwayat(); if (is.null(rw)) return(NULL); x <- rw[rw$kode == kode, ]; if (nrow(x)) x[1, ] else NULL }
@@ -193,7 +239,7 @@ server <- function(input, output, session) {
 
   output$plot_komponen <- renderPlot({
     kp <- skor()$komponen
-    d <- data.frame(komponen = paste0(kp$area_kode, kp$komponen_no, " ", kp$komponen),
+    d <- data.frame(komponen = paste0("Zona ", kp$komponen_no, " (", kp$area_kode, ") ", kp$komponen),
                     sumber = "Klaim saat ini", persen = 100 * kp$skor / kp$bobot_komponen)
     rw <- riwayat()
     sumber_lalu <- c(jawaban_unit = "Klaim unit (lalu)", jawaban_tpi = "TPI (lalu)")
@@ -201,7 +247,7 @@ server <- function(input, output, session) {
       for (kol in names(sumber_lalu)) {
         if (!any(nzchar(rw[[kol]]))) next
         k2 <- hitung_skor(RB, stats::setNames(rw[[kol]], rw$kode), kosong_nol = FALSE)$komponen
-        d <- rbind(d, data.frame(komponen = paste0(k2$area_kode, k2$komponen_no, " ", k2$komponen), sumber = sumber_lalu[[kol]],
+        d <- rbind(d, data.frame(komponen = paste0("Zona ", k2$komponen_no, " (", k2$area_kode, ") ", k2$komponen), sumber = sumber_lalu[[kol]],
                                  persen = 100 * k2$skor / k2$bobot_komponen))
       }
     }
@@ -209,61 +255,49 @@ server <- function(input, output, session) {
     d$komponen <- factor(d$komponen, rev(sort(unique(d$komponen))))
     ggplot2::ggplot(d, ggplot2::aes(x = persen, y = komponen, fill = sumber)) +
       ggplot2::geom_col(position = ggplot2::position_dodge(width = 0.8), width = 0.75) +
-      ggplot2::scale_fill_manual(values = c("Klaim unit (lalu)" = "#9DB4D6", "TPI (lalu)" = "#C0392B", "Klaim saat ini" = "#1F3864"), drop = TRUE) +
+      ggplot2::scale_fill_manual(values = c("Klaim unit (lalu)" = "#9CC9D0", "TPI (lalu)" = "#F2A541", "Klaim saat ini" = WARNA$navy), drop = TRUE) +
       ggplot2::scale_x_continuous(limits = c(0, 100), expand = c(0, 0)) +
       ggplot2::labs(x = "% dari bobot komponen", y = NULL, fill = NULL) +
       ggplot2::theme_minimal(base_size = 12) + ggplot2::theme(legend.position = "top", panel.grid.major.y = ggplot2::element_blank())
   })
 
   output$tbl_progres <- DT::renderDT({
-    st <- merge(status(), unique(BUTIR[, c("kode", "grup")]), by = "kode")
-    tb <- as.data.frame.matrix(table(paste(st$grup, st$komponen), factor(st$status, names(LAMBANG))))
+    st <- merge(status(), unique(BUTIR[, c("kode", "zona", "nama_zona")]), by = "kode")
+    st$label <- ifelse(st$zona == "H", "Hasil", paste0(st$nama_zona, " (", substr(st$area, 1, 1), ") ", st$komponen))
+    tb <- as.data.frame.matrix(table(st$label, factor(st$status, names(LAMBANG))))
     tb <- cbind(Komponen = rownames(tb), tb); rownames(tb) <- NULL
     DT::datatable(tb, rownames = FALSE, options = list(dom = "t", pageLength = 20))
   })
 
   # ------------------------------------------------------------- Isi LKE: navigasi
-  observeEvent(input$f_area, {
-    pil <- pilihan_grup(input$f_area)
-    tgt <- target_butir()
-    g <- if (!is.null(tgt)) BUTIR$grup[BUTIR$kode == tgt] else NULL
-    updateSelectInput(session, "f_grup", choices = pil, selected = if (length(g) && g %in% pil) g else pil[1])
-  }, ignoreInit = TRUE)
+  butir_sel <- reactiveVal(BUTIR$kode[1])
 
   daftar_terlihat <- reactive({
-    req(input$f_grup)
-    st <- status(); x <- BUTIR[BUTIR$grup == input$f_grup, ]
+    st <- status(); x <- BUTIR
     x$status <- st$status[match(x$kode, st$kode)]
     if (input$f_status != "Semua") x <- x[x$status == input$f_status, ]
+    q <- tolower(trimws(input$f_cari %||% ""))
+    if (nzchar(q)) x <- x[grepl(q, tolower(x$kode), fixed = TRUE) | grepl(q, tolower(x$pertanyaan), fixed = TRUE), ]
     x
   })
+  output$ui_daftar_zona <- renderUI(daftar_zona_ui(daftar_terlihat(), isolate(butir_sel())))
 
-  output$ui_daftar_butir <- renderUI({
-    x <- daftar_terlihat()
-    if (nrow(x) == 0) return(helpText("Tidak ada butir dengan status ini."))
-    pilih <- isolate(target_butir() %||% input$butir_pilih)
-    if (!is.null(isolate(target_butir())) && isolate(target_butir()) %in% x$kode) target_butir(NULL)
-    radioButtons("butir_pilih", NULL,
-                 choiceNames = lapply(seq_len(nrow(x)), function(i) paste(LAMBANG[[x$status[i]]], x$kode[i], "-", substr(x$pertanyaan[i], 1, 80))),
-                 choiceValues = x$kode, selected = if (!is.null(pilih) && pilih %in% x$kode) pilih else x$kode[1])
-  })
-
-  butir_aktif <- reactive({ req(input$butir_pilih); BUTIR[BUTIR$kode == input$butir_pilih, ] })
-  rinci_aktif <- reactive(RB[RB$tipe == "rincian" & RB$induk %in% butir_aktif()$kode, ])
-
-  buka_butir <- function(kode) {
-    b <- BUTIR[BUTIR$kode == kode, ]
-    area <- if (b$bagian == "Hasil") "H" else b$area_kode
-    updateSelectInput(session, "f_area", selected = area)
-    updateSelectInput(session, "f_grup", choices = pilihan_grup(area), selected = b$grup)
-    updateSelectInput(session, "f_status", selected = "Semua")
-    target_butir(kode)
-    updateRadioButtons(session, "butir_pilih", selected = kode)
-    hasil_ai(NULL)
+  pilih_butir <- function(kode) {
+    if (!(kode %in% BUTIR$kode)) return()
+    zona_lama <- BUTIR$zona[BUTIR$kode == butir_sel()]
+    butir_sel(kode); hasil_ai(NULL)
+    zona <- BUTIR$zona[BUTIR$kode == kode]
+    if (!identical(zona, zona_lama)) accordion_panel_set("acc_zona", zona)
+    session$sendCustomMessage("tandai_butir", kode)
   }
-  observeEvent(input$btn_sebelum, { i <- match(input$butir_pilih, BUTIR$kode); if (i > 1) buka_butir(BUTIR$kode[i - 1]) })
-  observeEvent(input$btn_lanjut,  { i <- match(input$butir_pilih, BUTIR$kode); if (i < nrow(BUTIR)) buka_butir(BUTIR$kode[i + 1]) })
-  observeEvent(input$butir_pilih, hasil_ai(NULL))
+  observeEvent(input$klik_butir, pilih_butir(input$klik_butir))
+  observeEvent(input$btn_sebelum, { i <- match(butir_sel(), BUTIR$kode); if (i > 1) pilih_butir(BUTIR$kode[i - 1]) })
+  observeEvent(input$btn_lanjut,  { i <- match(butir_sel(), BUTIR$kode); if (i < nrow(BUTIR)) pilih_butir(BUTIR$kode[i + 1]) })
+  # dipakai menu lain (mis. tabel Validasi)
+  buka_butir <- function(kode) { nav_select("nav", "Isi LKE"); pilih_butir(kode); accordion_panel_set("acc_zona", BUTIR$zona[BUTIR$kode == kode]) }
+
+  butir_aktif <- reactive(BUTIR[BUTIR$kode == butir_sel(), ])
+  rinci_aktif <- reactive(RB[RB$tipe == "rincian" & RB$induk %in% butir_aktif()$kode, ])
 
   # ------------------------------------------------------------- Isi LKE: formulir
   output$ui_form <- renderUI({
@@ -288,10 +322,12 @@ server <- function(input, output, session) {
     tagList(
       card(
         card_header(div(class = "d-flex justify-content-between align-items-center",
-          span(tags$b(k), " \u00B7 ", b$area, " \u203A ", b$komponen, " \u203A ", b$sub_nama),
+          span(chip_kode(k, besar = TRUE), " ", b$nama_zona, " \u00B7 ", b$komponen, " \u203A ", b$area, " \u203A ", b$sub_nama),
           span(actionButton("btn_sebelum", "\u2190 Sebelumnya", class = "btn-sm", disabled = if (i == 1) "disabled" else NULL),
                actionButton("btn_lanjut", "Berikutnya \u2192", class = "btn-sm", disabled = if (i == nrow(BUTIR)) "disabled" else NULL)))),
-        h5(b$pertanyaan),
+        div(class = "keterangan", div(class = "label", paste("Keterangan kode", k)),
+            div(class = "fs-5", b$pertanyaan),
+            tags$small(class = "text-muted", sprintf("Jenis jawaban: %s \u00B7 butir ke-%d dari %d", b$pilihan, i, nrow(BUTIR)))),
         accordion(open = c("Kriteria jawaban", if (!is.null(rw)) "Catatan evaluator periode lalu"),
           accordion_panel("Kriteria jawaban",
             if (length(krit)) tags$table(class = "kriteria", lapply(names(krit), function(h) tags$tr(tags$td(tags$b(h)), tags$td(krit[[h]]))))
@@ -437,7 +473,8 @@ server <- function(input, output, session) {
     st <- status(); tm <- temuan()
     ringkas <- vapply(st$kode, function(k) { t <- tm[tm$kode == k & tm$tingkat != "info", ]
       if (nrow(t)) paste(sprintf("[%s] %s", t$tingkat, t$pesan), collapse = "\n") else "" }, character(1))
-    d <- data.frame(Kode = st$kode, Area = ifelse(st$bagian == "Hasil", "Hasil", st$area), Komponen = st$komponen, Pertanyaan = st$pertanyaan,
+    d <- data.frame(Kode = st$kode, Area = ifelse(st$bagian == "Hasil", "Hasil", st$area), Komponen = st$komponen,
+                    Butir = butir_html(st$kode, st$pertanyaan),
                     Status = st$status, Jawaban = vapply(st$kode, ambil_isi, character(1), kol = "jawaban"),
                     Temuan = ringkas, PIC = vapply(st$kode, ambil_isi, character(1), kol = "pic"), stringsAsFactors = FALSE)
     if (input$v_status != "Semua") d <- d[d$Status == input$v_status, ]
@@ -445,18 +482,19 @@ server <- function(input, output, session) {
     d
   })
   output$tbl_validasi <- DT::renderDT({
-    DT::datatable(tabel_validasi(), rownames = FALSE, selection = "single", filter = "top",
-                  options = list(pageLength = 15, scrollX = TRUE, columnDefs = list(list(width = "35%", targets = 6)))) |>
+    DT::datatable(tabel_validasi(), rownames = FALSE, selection = "single", filter = "top", escape = -4,
+                  options = list(pageLength = 15, scrollX = TRUE, columnDefs = list(list(visible = FALSE, targets = 0), list(width = "35%", targets = 6)))) |>
       DT::formatStyle("Status", color = "white", fontWeight = "bold",
                       backgroundColor = DT::styleEqual(names(WARNA_STATUS), unname(WARNA_STATUS)))
   })
   observeEvent(input$tbl_validasi_rows_selected, {
-    k <- tabel_validasi()$Kode[input$tbl_validasi_rows_selected]
-    nav_select("nav", "Isi LKE"); buka_butir(k)
+    buka_butir(tabel_validasi()$Kode[input$tbl_validasi_rows_selected])
   })
   output$tbl_temuan <- DT::renderDT({
     tm <- temuan(); tm <- tm[order(match(tm$tingkat, c("merah", "kuning", "info")), tm$kode), ]
-    DT::datatable(tm, rownames = FALSE, filter = "top", options = list(pageLength = 15))
+    tm <- data.frame(Butir = butir_html(tm$kode, BUTIR$pertanyaan[match(tm$kode, BUTIR$kode)]),
+                     Tingkat = tm$tingkat, Aturan = tm$aturan, Pesan = tm$pesan)
+    DT::datatable(tm, rownames = FALSE, filter = "top", escape = -1, options = list(pageLength = 15))
   })
 
   # ------------------------------------------------------------- Analisis riwayat
@@ -467,14 +505,14 @@ server <- function(input, output, session) {
     tagList(
       card(card_header("Ringkasan"), uiOutput("an_ringkas")),
       layout_columns(col_widths = c(5, 7),
-        card(card_header("Alasan penurunan yang paling sering (dari catatan TPI/TPSK)"), DT::DTOutput("an_alasan")),
-        card(card_header("Penurunan per komponen"), DT::DTOutput("an_komponen"))),
-      card(card_header("Butir yang diturunkan evaluator"), DT::DTOutput("an_butir"))
+        card(card_header("Alasan penurunan yang paling sering (dari catatan TPI/TPSK)"), DT::DTOutput("an_alasan", fill = FALSE)),
+        card(card_header("Penurunan per komponen"), DT::DTOutput("an_komponen", fill = FALSE))),
+      card(card_header("Butir yang diturunkan evaluator"), DT::DTOutput("an_butir", fill = FALSE))
     )
   })
   analisis <- reactive({
     rw <- riwayat(); req(rw)
-    x <- merge(BUTIR[BUTIR$pilihan %in% names(PETA_NILAI), c("kode", "grup", "komponen", "pertanyaan", "pilihan")], rw, by = "kode")
+    x <- merge(BUTIR[BUTIR$pilihan %in% names(PETA_NILAI), c("kode", "grup", "nama_zona", "area", "komponen", "pertanyaan", "pilihan")], rw, by = "kode")
     x$ev <- ifelse(nzchar(x$jawaban_tpi), x$jawaban_tpi, ifelse(nzchar(x$jawaban_tpsk), x$jawaban_tpsk, x$jawaban_tp))
     x$evaluator <- ifelse(nzchar(x$jawaban_tpi), "TPI", ifelse(nzchar(x$jawaban_tpsk), "TPSK", "TP PTN"))
     x$catatan <- ifelse(nzchar(x$catatan_tpi), x$catatan_tpi, ifelse(nzchar(x$catatan_tpsk), x$catatan_tpsk, x$catatan_tp))
@@ -510,15 +548,28 @@ server <- function(input, output, session) {
   })
   output$an_komponen <- DT::renderDT({
     x <- analisis()
-    a <- stats::aggregate(cbind(turun = x$turun, butir = 1) ~ grup + komponen, data = x, FUN = sum)
+    a <- stats::aggregate(cbind(turun = x$turun, butir = 1) ~ grup + nama_zona + area + komponen, data = x, FUN = sum)
+    a <- a[order(a$grup), ]
     a$persen <- round(100 * a$turun / a$butir)
-    DT::datatable(a[order(a$grup), ], rownames = FALSE, options = list(dom = "t", pageLength = 20))
+    DT::datatable(data.frame(Zona = a$nama_zona, Bagian = a$area, Komponen = a$komponen, Diturunkan = a$turun,
+                             Butir = a$butir, `%` = a$persen, check.names = FALSE),
+                  rownames = FALSE, options = list(dom = "t", pageLength = 20))
   })
   output$an_butir <- DT::renderDT({
     x <- analisis(); x <- x[x$turun, ]
-    DT::datatable(data.frame(Kode = x$kode, Pertanyaan = x$pertanyaan, Unit = x$jawaban_unit, `TP PTN` = x$jawaban_tp,
+    DT::datatable(data.frame(Butir = butir_html(x$kode, x$pertanyaan, 45), Unit = x$jawaban_unit, `TP PTN` = x$jawaban_tp,
                              TPSK = x$jawaban_tpsk, TPI = x$jawaban_tpi, Catatan = x$catatan, check.names = FALSE),
-                  rownames = FALSE, filter = "top", options = list(pageLength = 10, scrollX = TRUE))
+                  rownames = FALSE, filter = "top", escape = -1, options = list(pageLength = 10, scrollX = TRUE))
+  })
+
+  # ------------------------------------------------------------- Keterangan kode
+  output$tbl_kode <- DT::renderDT({
+    k <- RB[order(RB$baris_excel), ]
+    zona <- ifelse(k$bagian == "Hasil", "Hasil", paste("Zona", k$komponen_no))
+    DT::datatable(data.frame(Kode = k$kode, Zona = zona, Bagian = k$area, Komponen = k$komponen,
+                             `Sub-komponen` = k$sub_nama, `Judul singkat` = ringkas_teks(k$pertanyaan),
+                             `Pertanyaan lengkap` = k$pertanyaan, `Jenis jawaban` = k$pilihan, check.names = FALSE),
+                  rownames = FALSE, filter = "top", options = list(pageLength = 25, scrollX = TRUE))
   })
 
   # ------------------------------------------------------------- Draf dokumen

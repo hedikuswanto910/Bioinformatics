@@ -17,10 +17,11 @@ Jadi masalah utamanya bukan sekadar "salah unggah", tetapi **jawaban diklaim leb
 | Menu | Fungsi |
 |---|---|
 | Beranda | Nilai klaim (rumus identik dengan Excel LKE), status butir, grafik klaim vs nilai TPI periode lalu per komponen |
-| Isi LKE | Pengisian butir berurutan (tombol Sebelumnya/Berikutnya), kriteria tiap pilihan, catatan TP PTN/TPSK/TPI periode lalu, validasi langsung saat mengetik, rincian jumlah → persentase otomatis, unggah PDF bukti, tombol Claude |
+| Isi LKE | Daftar butir dalam dropdown per **Zona 1-6** (sama dengan sheet Zona di Excel) + Hasil, dengan hitungan status per zona, kolom pencarian, kode butir + judul singkat (pertanyaan lengkap tampil saat kursor diarahkan). Pengisian butir berurutan (tombol Sebelumnya/Berikutnya), kriteria tiap pilihan, catatan TP PTN/TPSK/TPI periode lalu, validasi langsung saat mengetik, rincian jumlah → persentase otomatis, unggah PDF bukti, tombol Claude |
 | Validasi | Semua butir berwarna merah/kuning/hijau; klik baris untuk langsung membuka butirnya |
 | Pelajaran Penilaian Lalu | Butir yang diturunkan, alasan terbanyak, persentase penurunan per komponen (bahan pelatihan PIC) |
 | Draf Dokumen (Claude) | Draf laporan monev, tindak lanjut, notulen, dan lain-lain dari fakta kegiatan nyata → .docx |
+| Keterangan Kode | Cara membaca kode (mis. `P1.ii.c` = Pemenuhan, Zona 1, sub-komponen ii, butir c) dan tabel semua kode beserta pertanyaan lengkapnya |
 | Prosedur Mutu (SOP) | Pemeriksaan daftar PM + PDF: nomor ganda, nama file vs nomor dokumen, versi vs nomor revisi, kop "Halaman x dari N", status upload |
 | Ekspor | Lembar isian Excel (urutan = baris LKE) dan laporan validasi Word |
 | Pengaturan | Tahun, impor isian/riwayat dari Excel, status & biaya Claude, jejak perubahan |
@@ -112,6 +113,7 @@ R/40_penyimpanan.R     SQLite + jejak + log AI
 R/50_ekspor.R          Excel & Word
 R/60_sop.R             pemeriksa daftar PM & PDF SOP
 R/70_impor.R           pembaca template LKE Excel
+R/80_tampilan.R        tema warna & CSS (ubah daftar WARNA untuk ganti tema)
 data/rubrik_lke.csv    113 butir + 24 rincian, kriteria & bobot (publik)
 data/lokal/            data internal unit (TIDAK di-commit)
 scripts/siapkan_data.R impor dari Excel
