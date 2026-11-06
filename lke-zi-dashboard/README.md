@@ -24,7 +24,7 @@ Jadi masalah utamanya bukan sekadar "salah unggah", tetapi **jawaban diklaim leb
 | Keterangan Kode | Cara membaca kode (mis. `P1.ii.c` = Pemenuhan, Zona 1, sub-komponen ii, butir c) dan tabel semua kode beserta pertanyaan lengkapnya |
 | Prosedur Mutu (SOP) | Pemeriksaan daftar PM + PDF: nomor ganda, nama file vs nomor dokumen, versi vs nomor revisi, kop "Halaman x dari N", status upload |
 | Ekspor | Lembar isian Excel (urutan = baris LKE) dan laporan validasi Word |
-| Pengaturan | Tahun, impor isian/riwayat dari Excel, status & biaya Claude, jejak perubahan |
+| Pengaturan | Tahun, impor isian/riwayat dari Excel, unggah logo & gambar banner header, status & biaya Claude, jejak perubahan |
 
 Mesin nilai sudah diuji terhadap file LKE Excel asli: nilai Pengungkit untuk keempat kolom penilai (Unit, TP PTN, TPSK, TPI) **sama persis** dengan hasil rumus Excel. Satu perbedaan sengaja: Excel memakai `AVERAGE()` yang **mengabaikan** butir kosong, sedangkan dashboard menghitung butir kosong = 0 agar butir yang belum diisi tidak tersembunyi.
 
@@ -113,7 +113,8 @@ R/40_penyimpanan.R     SQLite + jejak + log AI
 R/50_ekspor.R          Excel & Word
 R/60_sop.R             pemeriksa daftar PM & PDF SOP
 R/70_impor.R           pembaca template LKE Excel
-R/80_tampilan.R        tema warna & CSS (ubah daftar WARNA untuk ganti tema)
+R/80_tampilan.R        tema warna, CSS, header & ribbon (ubah daftar WARNA untuk ganti tema)
+www/gambar/            logo & banner bawaan (www/kustom/ = unggahan Anda, tidak di-commit)
 data/rubrik_lke.csv    113 butir + 24 rincian, kriteria & bobot (publik)
 data/lokal/            data internal unit (TIDAK di-commit)
 scripts/siapkan_data.R impor dari Excel

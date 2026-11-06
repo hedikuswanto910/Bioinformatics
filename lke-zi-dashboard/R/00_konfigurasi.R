@@ -12,6 +12,9 @@ KONFIG <- list(
 
   # Nama unit kerja (muncul di judul dan dokumen ekspor)
   unit = Sys.getenv("ZI_UNIT", "Fakultas Kedokteran Universitas Hasanuddin"),
+  # Ditampilkan di bilah info paling atas (kosongkan bila tidak perlu)
+  alamat = Sys.getenv("ZI_ALAMAT", ""),
+  email  = Sys.getenv("ZI_EMAIL", ""),
 
   # Lokasi file. Folder data/lokal TIDAK ikut ke GitHub (lihat .gitignore)
   # karena berisi data internal unit.

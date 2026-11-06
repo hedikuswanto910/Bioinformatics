@@ -76,7 +76,10 @@ ui <- page_navbar(
   theme = tema_aplikasi(),
   bg = WARNA$navy, inverse = TRUE,
   fillable = FALSE,  # halaman bisa di-scroll; tabel tidak terjepit
-  header = tags$head(tags$style(HTML(CSS_APLIKASI)), tags$script(HTML(JS_APLIKASI))),
+  window_title = paste("LKE ZI -", KONFIG$unit),
+  header = tagList(tags$head(tags$style(HTML(CSS_APLIKASI)), tags$style(HTML(CSS_HEADER)),
+                             tags$script(HTML(JS_APLIKASI)), tags$script(HTML(JS_HEADER))),
+                   banner_ui()),
 
   # ---------------------------------------------------------------- Beranda
   nav_panel("Beranda",
@@ -204,11 +207,16 @@ Zona 1-6 sama dengan sheet *Zona 1 ... Zona 6* di file LKE Excel: 1 Manajemen Pe
            fileInput("p_file_riwayat", "Riwayat penilaian evaluator (file yang memuat kolom TP PTN/TPSK/TPI)", accept = ".xlsx"),
            actionButton("p_impor_riwayat", "Impor riwayat"))
     ),
+    card(card_header("Tampilan header (logo & gambar banner)"),
+         layout_columns(col_widths = c(5, 5, 2),
+           fileInput("p_logo", "Logo (PNG/SVG, latar transparan)", accept = c(".png", ".svg", ".jpg", ".jpeg", ".webp")),
+           fileInput("p_header", "Gambar banner (foto lebar, mis. 1600x400 px)", accept = c(".jpg", ".jpeg", ".png", ".webp", ".svg")),
+           actionButton("p_reset_gambar", "Pakai bawaan", class = "btn-outline-secondary mt-4")),
+         helpText("Gambar disimpan di folder www/kustom (tidak ikut ke GitHub) dan langsung tampil.")),
     card(card_header("Pemakaian Claude"), textOutput("p_biaya"), DT::DTOutput("p_log_ai", fill = FALSE)),
     card(card_header("Jejak perubahan"), DT::DTOutput("p_jejak", fill = FALSE))
   ),
-  nav_spacer(),
-  nav_item(tags$small(class = "unit-kerja", KONFIG$unit))
+
 )
 
 # =============================================================================
@@ -648,6 +656,23 @@ server <- function(input, output, session) {
     }, error = function(e) conditionMessage(e), warning = function(w) conditionMessage(w))
     showNotification(if (hasil == "ok") "Riwayat penilaian diimpor." else paste("Perhatian:", hasil), type = if (hasil == "ok") "message" else "warning")
   })
+  simpan_gambar <- function(berkas, jenis) {
+    req(berkas)
+    dir.create("www/kustom", showWarnings = FALSE, recursive = TRUE)
+    unlink(list.files("www/kustom", paste0("^", jenis, "\\."), full.names = TRUE))
+    ext <- tolower(tools::file_ext(berkas$name))
+    file.copy(berkas$datapath, file.path("www/kustom", paste0(jenis, ".", ext)), overwrite = TRUE)
+    session$sendCustomMessage("ganti_gambar", list(jenis = jenis, url = gambar_tampilan(jenis)))
+    showNotification(paste(if (jenis == "logo") "Logo" else "Gambar banner", "diperbarui."))
+  }
+  observeEvent(input$p_logo, simpan_gambar(input$p_logo, "logo"))
+  observeEvent(input$p_header, simpan_gambar(input$p_header, "header"))
+  observeEvent(input$p_reset_gambar, {
+    unlink(list.files("www/kustom", full.names = TRUE))
+    for (j in c("logo", "header")) session$sendCustomMessage("ganti_gambar", list(jenis = j, url = gambar_tampilan(j)))
+    showNotification("Kembali ke logo & banner bawaan.")
+  })
+
   log_ai <- reactive({ pemicu(); hasil_ai(); draf_dok(); baca_log_ai(con, tahun()) })
   output$p_biaya <- renderText(sprintf("Total %d permintaan, estimasi biaya US$%.2f tahun %d.", nrow(log_ai()), sum(log_ai()$biaya), tahun()))
   output$p_log_ai <- DT::renderDT(DT::datatable(log_ai()[, c("waktu", "kode", "jenis", "model", "token_in", "token_out", "biaya")],

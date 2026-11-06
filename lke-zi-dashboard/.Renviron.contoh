@@ -3,6 +3,9 @@
 ANTHROPIC_API_KEY=
 ZI_TAHUN=2026
 ZI_UNIT=Fakultas Kedokteran Universitas Hasanuddin
+# Opsional - tampil di bilah info paling atas:
+# ZI_ALAMAT=Alamat fakultas
+# ZI_EMAIL=email@fakultas
 # Opsional:
 # ZI_CLAUDE_MODEL=claude-opus-5-5
 # ZI_CLAUDE_EFFORT=medium
