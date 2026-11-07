@@ -134,43 +134,48 @@ konteks_butir <- function(b, isi, rinci = NULL, isi_rinci = NULL, rw = NULL, tem
 }
 
 SYSTEM_VALIDASI <- paste(
-  "Anda membantu Tim Zona Integritas sebuah unit kerja di perguruan tinggi negeri Indonesia",
-  "menyiapkan Lembar Kerja Evaluasi (LKE) Zona Integritas menuju WBK/WBBM sebelum dinilai",
-  "oleh Tim Penilai (TP PTN, TPSK, dan TPI). Tugas Anda adalah pra-penilaian yang jujur dan",
-  "ketat, seperti evaluator yang skeptis: tentukan jawaban yang benar-benar didukung bukti,",
-  "bukan jawaban yang diharapkan unit.",
+  "Anda bertindak sebagai asesor internal yang membantu Tim Zona Integritas sebuah unit kerja perguruan tinggi",
+  "negeri di Indonesia melakukan pra-penilaian Lembar Kerja Evaluasi (LKE) Zona Integritas menuju WBK/WBBM",
+  "sebelum dinilai oleh Tim Penilai (TP PTN, TPSK, dan TPI). Lakukan penalaran berbasis bukti secara skeptis",
+  "dan sistematis: tetapkan jawaban yang dapat dipertahankan oleh bukti, bukan jawaban yang diharapkan unit.",
   "",
-  "Prinsip penilaian:",
-  "- Jawaban tertinggi hanya layak bila SETIAP unsur kriterianya terbukti (mis. 'seluruh',",
-  "  'berkala', 'melibatkan pimpinan', 'ditindaklanjuti', 'inovasi', 'dampak terukur').",
-  "- Bukti yang hanya berupa judul tanpa isi tidak bisa diverifikasi; nyatakan hal itu dan",
-  "  nilai berdasarkan apa yang bisa diverifikasi. Bila PDF dilampirkan, baca isinya.",
-  "- Siklus lengkap biasanya dituntut: dasar/penetapan (SK, pedoman) -> pelaksanaan",
-  "  (undangan, daftar hadir, notulen, foto, laporan) -> monitoring & evaluasi -> tindak lanjut.",
-  "- Bukti harus dari periode penilaian berjalan.",
-  "- Manfaatkan catatan evaluator periode sebelumnya: apakah kekurangan yang mereka sebut",
-  "  sudah ditutup oleh isian sekarang?",
-  "- Jangan mengarang fakta, nomor SK, tanggal, atau nama dokumen yang tidak ada di isian.",
-  "Tulis semua keluaran dalam Bahasa Indonesia yang ringkas dan operasional.",
+  "Kaidah penalaran:",
+  "1. Uraikan kriteria jawaban yang diklaim menjadi unsur-unsur yang dapat diuji (misalnya cakupan 'seluruh',",
+  "   frekuensi 'berkala', keterlibatan pimpinan, tindak lanjut, inovasi, dampak terukur).",
+  "2. Nilai setiap unsur dengan tiga kategori: 'terbukti' (didukung isi dokumen), 'tidak_terbukti' (dokumen",
+  "   tersedia tetapi tidak menunjukkan unsur tersebut atau justru membantahnya), dan 'tidak_dapat_diverifikasi'",
+  "   (hanya judul dokumen yang tersedia sehingga isinya tidak dapat diperiksa). Bedakan dengan tegas ketiganya.",
+  "3. Sebutkan dokumen yang menjadi dasar setiap penilaian unsur. Jangan menyimpulkan melampaui bukti.",
+  "4. Periksa kelengkapan siklus Plan-Do-Check-Act: penetapan, pelaksanaan, pemantauan-evaluasi, dan tindak lanjut.",
+  "5. Periksa kesesuaian periode bukti dengan periode penilaian berjalan.",
+  "6. Gunakan catatan evaluator periode terdahulu sebagai hipotesis kelemahan yang harus diuji: apakah",
+  "   kekurangan tersebut telah ditutup oleh isian saat ini?",
+  "7. Nyatakan tingkat keyakinan Anda secara jujur; turunkan keyakinan bila sebagian besar unsur tidak dapat diverifikasi.",
+  "8. Jangan mengarang fakta, nomor surat, tanggal, atau nama dokumen.",
+  "Gunakan Bahasa Indonesia baku dengan ragam akademis yang ringkas, lugas, dan operasional.",
   sep = "\n")
 
 SKEMA_VALIDASI <- list(
   type = "object", additionalProperties = FALSE,
-  required = .arr("jawaban_disarankan", "tingkat_risiko", "alasan", "unsur_kriteria",
+  required = .arr("jawaban_disarankan", "tingkat_risiko", "tingkat_keyakinan", "alasan", "unsur_kriteria",
                   "dokumen_perlu_ditambah", "perbaikan_narasi"),
   properties = list(
     jawaban_disarankan = list(type = "string",
-                              description = "Jawaban yang menurut bukti saat ini paling dapat dipertahankan (mis. A, B, Ya, Tidak, atau angka)."),
+                              description = "Jawaban yang paling dapat dipertahankan berdasarkan bukti saat ini (mis. A, B, Ya, Tidak, atau angka)."),
     tingkat_risiko = list(type = "string", enum = .arr("rendah", "sedang", "tinggi"),
-                          description = "Risiko nilai diturunkan evaluator bila diunggah apa adanya."),
-    alasan = list(type = "string"),
+                          description = "Risiko nilai diturunkan evaluator apabila diajukan dalam kondisi saat ini."),
+    tingkat_keyakinan = list(type = "string", enum = .arr("rendah", "sedang", "tinggi"),
+                             description = "Keyakinan asesor atas penilaian ini, mempertimbangkan proporsi unsur yang dapat diverifikasi."),
+    alasan = list(type = "string", description = "Argumentasi ringkas yang menautkan unsur kriteria dengan bukti."),
     unsur_kriteria = list(type = "array", items = list(
       type = "object", additionalProperties = FALSE,
-      required = .arr("unsur", "terbukti", "keterangan"),
-      properties = list(unsur = list(type = "string"), terbukti = list(type = "boolean"),
+      required = .arr("unsur", "status", "dasar_bukti", "keterangan"),
+      properties = list(unsur = list(type = "string"),
+                        status = list(type = "string", enum = .arr("terbukti", "tidak_terbukti", "tidak_dapat_diverifikasi")),
+                        dasar_bukti = list(type = "string", description = "Judul dokumen yang menjadi dasar penilaian; '-' bila tidak ada."),
                         keterangan = list(type = "string")))),
     dokumen_perlu_ditambah = list(type = "array", items = list(type = "string")),
-    perbaikan_narasi = list(type = "string", description = "Saran konkret memperbaiki narasi; bukan narasi lengkap.")
+    perbaikan_narasi = list(type = "string", description = "Rekomendasi perbaikan narasi yang spesifik; bukan narasi lengkap.")
   )
 )
 
@@ -189,14 +194,16 @@ claude_validasi_butir <- function(b, isi, rinci = NULL, isi_rinci = NULL, rw = N
 # Draf narasi (kolom Keterangan) dari isian yang ADA - tanpa mengarang
 # -----------------------------------------------------------------------------
 SYSTEM_NARASI <- paste(
-  "Anda menyusun draf narasi kolom 'Keterangan' LKE Zona Integritas untuk unit kerja.",
-  "Narasi yang baik menjawab kriteria secara langsung: apa yang dilakukan, dasar penetapannya,",
-  "kapan dan seberapa sering, siapa yang terlibat (termasuk pimpinan), hasil/dampaknya, monitoring",
-  "dan tindak lanjutnya; lalu merujuk dokumen bukti dengan nomor urut [1], [2], dst. sesuai daftar bukti.",
-  "Gunakan HANYA fakta yang ada di isian unit. Bila ada unsur kriteria yang belum didukung data,",
-  "tulis penanda [PERLU DIISI: ...] di tempatnya dan cantumkan di daftar data yang perlu dilengkapi.",
-  "Jangan menyatakan sesuatu lebih tinggi dari jawaban yang didukung bukti. Bahasa Indonesia formal,",
-  "3-5 paragraf ringkas, tanpa basa-basi pembuka.",
+  "Anda menyusun draf narasi kolom 'Keterangan' pada LKE Zona Integritas sebuah unit kerja perguruan tinggi negeri.",
+  "Gunakan Bahasa Indonesia baku dengan ragam akademis: kalimat efektif, istilah konsisten, dan tanpa ungkapan promosi",
+  "atau superlatif yang tidak didukung data (misalnya 'sangat optimal', 'luar biasa').",
+  "Susun narasi mengikuti alur argumentasi berikut: (1) dasar penetapan atau kebijakan; (2) pelaksanaan, mencakup",
+  "waktu, frekuensi, dan pihak yang terlibat termasuk pimpinan; (3) keluaran dan hasil terukur; (4) pemantauan dan",
+  "evaluasi; (5) tindak lanjut dan perbaikan. Rujuk dokumen bukti dengan nomor urut [1], [2], dan seterusnya",
+  "sesuai daftar bukti.",
+  "Gunakan HANYA fakta yang tersedia pada isian unit. Unsur kriteria yang belum didukung data ditandai",
+  "[PERLU DIISI: ...] dan dicantumkan pada daftar data yang perlu dilengkapi. Jangan menyatakan capaian yang lebih",
+  "tinggi daripada yang didukung bukti. Panjang 3-5 paragraf ringkas.",
   sep = "\n")
 
 SKEMA_NARASI <- list(
@@ -221,7 +228,8 @@ JENIS_DOKUMEN <- c("Laporan Monitoring dan Evaluasi", "Laporan Tindak Lanjut Has
                    "Laporan Evaluasi SOP")
 
 SYSTEM_DOKUMEN <- paste(
-  "Anda membantu menyusun draf dokumen administrasi perguruan tinggi negeri Indonesia untuk",
+  "Anda membantu menyusun draf dokumen administrasi perguruan tinggi negeri Indonesia dalam ragam bahasa",
+  "baku dan akademis untuk",
   "kegiatan yang SUDAH dilaksanakan, berdasarkan fakta yang diberikan pengguna.",
   "Larangan mutlak: jangan mengarang kegiatan, tanggal, peserta, angka, temuan, nomor surat, atau",
   "tanda tangan. Setiap informasi yang dibutuhkan struktur dokumen tetapi tidak ada di fakta",

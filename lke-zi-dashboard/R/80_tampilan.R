@@ -118,6 +118,23 @@ table.dataTable tbody tr.selected td { box-shadow: inset 0 0 0 9999px rgba(249,1
 .kriteria td { vertical-align: top; padding: 4px 8px; }
 .accordion-button:not(.collapsed) { background: {{muda}}; color: {{marun}}; }
 
+/* Lencana ISO dan daftar periksa PDCA */
+.lencana-iso { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .5rem; }
+.badge-iso { font-size: .72rem; font-weight: 600; color: {{marun}}; background: #fff; border: 1px solid #ecc7c1;
+             border-radius: 999px; padding: .15rem .6rem; }
+.daftar-pdca { background: {{samping}}; border: 1px solid #f0dcd8; border-radius: 10px; padding: .6rem .75rem; margin-bottom: .75rem; }
+.pdca-baris { display: flex; flex-wrap: wrap; gap: .35rem; margin: .4rem 0 .25rem; }
+.pdca-chip { font-size: .76rem; font-weight: 600; border-radius: 999px; padding: .2rem .6rem; }
+.pdca-chip.ada { background: #e3f3ea; color: #1f6b44; }
+.pdca-chip.belum { background: #fbe7e6; color: #9b1c17; }
+
+/* Menu dropdown pada ribbon */
+nav.navbar .dropdown-menu { background: {{marun}}; border: 0; border-top: 3px solid {{emas}}; border-radius: 0 0 10px 10px;
+                            box-shadow: 0 10px 24px rgba(78,7,0,.35); padding: .35rem 0; }
+nav.navbar .dropdown-item { color: #fff; font-weight: 500; padding: .6rem 1.1rem; transition: background .15s ease, color .15s ease; }
+nav.navbar .dropdown-item:hover, nav.navbar .dropdown-item:focus { background: rgba(0,0,0,.22); color: {{emas}}; }
+nav.navbar .dropdown-item.active { background: rgba(0,0,0,.3); color: {{emas}}; }
+
 /* Tombol */
 .btn-primary { background: {{merah}}; border-color: {{merah}}; }
 .btn-primary:hover { background: {{marun}}; border-color: {{marun}}; }
@@ -185,9 +202,13 @@ banner_ui <- function() {
 
 kaki_ui <- function() {
   info <- c(KONFIG$alamat, KONFIG$email)
+  htmltools::tagList(
+  # Shiny 1.8 mengganti nama plugin datepicker menjadi bsDatepicker; alias ini
+  # mencegah galat konsol dari inisialisasi bawaan plugin saat halaman siap.
+  htmltools::tags$script(htmltools::HTML("if (window.jQuery && !jQuery.fn.datepicker && jQuery.fn.bsDatepicker) jQuery.fn.datepicker = jQuery.fn.bsDatepicker;")),
   htmltools::div(class = "kaki-situs",
     htmltools::div(htmltools::tags$b(KONFIG$unit), htmltools::br(), "Dashboard LKE Zona Integritas menuju WBK/WBBM"),
-    htmltools::div(class = "kanan", lapply(info[nzchar(info)], htmltools::div)))
+    htmltools::div(class = "kanan", lapply(info[nzchar(info)], htmltools::div))))
 }
 
 CSS_HEADER <- isi_warna("
@@ -244,14 +265,14 @@ document.addEventListener('DOMContentLoaded', function() {
   if (brand) { var img = document.createElement('img'); img.className = 'logo-kecil'; img.alt = 'Logo';
                var sl = document.getElementById('sumber-logo'); img.src = sl ? sl.dataset.src : 'gambar/logo_bawaan.svg'; brand.prepend(img); }
   var atur = function() {
-    var aktif = document.querySelector('#nav .nav-link.active');
+    var aktif = document.querySelector('#nav .nav-link.active:not(.dropdown-toggle), #nav .dropdown-item.active');
     document.body.classList.toggle('banner-ringkas', !!aktif && aktif.dataset.value !== 'Beranda');
   };
   document.querySelectorAll('#nav .nav-link').forEach(function(a) { a.addEventListener('shown.bs.tab', atur); });
   atur();
   window.addEventListener('scroll', function() { document.body.classList.toggle('pita-lekat', window.scrollY > 10); }, {passive: true});
 });
-$(document).on('shown.bs.tab', '#nav .nav-link', function(e) {
+$(document).on('shown.bs.tab', '#nav [data-bs-toggle=tab], #nav [data-toggle=tab]', function(e) {
   document.body.classList.toggle('banner-ringkas', e.target.dataset.value !== 'Beranda');
 });
 Shiny.addCustomMessageHandler('ganti_gambar', function(m) {

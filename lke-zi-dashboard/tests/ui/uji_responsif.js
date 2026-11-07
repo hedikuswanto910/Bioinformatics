@@ -3,7 +3,7 @@ const { chromium } = require('playwright');
 //   node tests/ui/uji_responsif.js [folder_tangkapan_layar]
 // Butuh Node.js + paket playwright (npm i playwright; npx playwright install chromium).
 const SP = process.argv[2] || 'hasil_uji_responsif';
-const URL = process.env.ZI_URL || URL;
+const URL = process.env.ZI_URL || 'http://127.0.0.1:3838';
 require('fs').mkdirSync(SP + '/shots', { recursive: true });
 const LEBAR = [
   { w: 375,  h: 812,  sentuh: true,  jenis: 'mobile' },
@@ -106,7 +106,10 @@ const cek = (w, nama, ok, info = '') => { hasil.push({ w, nama, ok, info }); };
 
     // Validasi: tabel lebar
     if (L.w < 1024) { await p.click('nav .navbar-toggle'); await p.waitForTimeout(400); }
-    await p.click('a.nav-link[data-value="Validasi"]'); await p.waitForSelector('#tbl_validasi table'); await idle();
+    await p.evaluate(() => document.querySelector('#nav [data-value="Validasi"]').closest('.dropdown').querySelector('.dropdown-toggle').click());
+    await p.waitForTimeout(400);
+    await p.click('#nav .dropdown-item[data-value="Validasi"]'); await p.waitForSelector('#tbl_validasi table'); await idle();
+    cek(L.w, 'menu dropdown dapat dibuka', await p.locator('#tbl_validasi').isVisible());
     const tb = await p.evaluate(() => { const b = document.querySelector('#tbl_validasi .dataTables_scrollBody');
       return { ov: document.documentElement.scrollWidth - innerWidth, geser: b ? b.scrollWidth > b.clientWidth : null, wadah: b ? getComputedStyle(b).overflowX : null }; });
     cek(L.w, 'tabel: halaman tidak pecah', tb.ov <= 0, `lebih ${tb.ov}px`);

@@ -1,45 +1,135 @@
-# Dashboard LKE Zona Integritas (R Shiny)
+# Sistem Pendukung Keputusan Pengisian dan Pra-Penilaian Mandiri LKE Zona Integritas
 
-Sistem pengisian Lembar Kerja Evaluasi (LKE) Zona Integritas yang **terarah, terurut, tervalidasi, dan tersistematis**, dengan validasi dan penyusunan draf berbantuan Claude (opsional).
+Dokumentasi teknis aplikasi R Shiny untuk pengisian, validasi, dan penjaminan mutu Lembar Kerja Evaluasi (LKE) Zona Integritas menuju Wilayah Bebas dari Korupsi (WBK) dan Wilayah Birokrasi Bersih dan Melayani (WBBM).
 
-## Kenapa sistem ini dibuat — dan apa yang tidak bisa diselesaikannya
+## Ringkasan
 
-Pada data penilaian sebelumnya (lihat menu *Pelajaran Penilaian Lalu* setelah riwayat diimpor), sebagian besar butir dinilai lebih rendah oleh evaluator dibandingkan klaim unit. Alasan terbanyak di catatan TPI/TPSK: dokumen tidak ada/tidak relevan, cakupan belum menyeluruh, inovasi tidak terbukti, tindak lanjut tidak dibuktikan, dan kegiatan tidak berkala.
+Pada penilaian Zona Integritas, nilai unit kerja kerap diturunkan oleh Tim Penilai karena jawaban yang diklaim tidak didukung bukti yang dapat diverifikasi. Aplikasi ini dirancang untuk menutup kesenjangan tersebut melalui empat pendekatan:
 
-Jadi masalah utamanya bukan sekadar "salah unggah", tetapi **jawaban diklaim lebih tinggi daripada yang dibuktikan dokumen**. Dashboard ini memaksa setiap PIC melihat kriteria dan catatan evaluator sebelumnya, lalu memeriksa isiannya secara otomatis. Namun:
+1. **Pengisian terstruktur** per zona dan butir, dengan kriteria jawaban dan catatan evaluator terdahulu yang ditampilkan berdampingan.
+2. **Validasi berbasis aturan** yang memeriksa bentuk dan kelengkapan isian secara seketika.
+3. **Penjaminan mutu** berorientasi standar, mencakup daftar periksa siklus PDCA, pengendalian identifikasi dokumen, register tindakan korektif, dan pemetaan indikatif terhadap ISO 9001:2015 dan ISO 37001:2016.
+4. **Pra-penilaian berbantuan model bahasa** (Claude) yang membedakan bukti terbukti, tidak terbukti, dan tidak dapat diverifikasi.
 
-- Validasi otomatis berbasis aturan hanya menangkap **masalah bentuk** (narasi kosong, tautan rusak, tahun bukti, data jumlah tidak konsisten, klaim "berkala/seluruh/inovasi" tanpa kata pendukung). Pada uji dengan data riwayat, aturan ini menangkap sekitar 6 dari 10 butir yang kemudian diturunkan TPI, tetapi juga menandai butir yang ternyata tidak diturunkan. Aturan **tidak bisa menilai substansi dokumen**.
-- Substansi hanya bisa dinilai oleh orang yang membaca dokumennya, atau oleh Claude bila PDF bukti diunggah. Hasil Claude adalah **pra-penilaian**, bukan nilai resmi.
-- Tidak ada sistem yang bisa menaikkan nilai bila kegiatannya memang belum dilakukan. Fitur draf dokumen Claude **dilarang mengarang fakta**: dokumen bukti yang tidak sesuai kenyataan adalah pemalsuan, dan berisiko besar justru pada penilaian integritas.
+Aplikasi diposisikan sebagai alat bantu keputusan, bukan pengganti penilaian Tim Penilai.
 
-## Fitur
+## 1. Latar belakang dan rumusan masalah
 
-| Menu | Fungsi |
-|---|---|
-| Beranda | Nilai klaim (rumus identik dengan Excel LKE), status butir, grafik klaim vs nilai TPI periode lalu per komponen |
-| Isi LKE | Daftar butir dalam dropdown per **Zona 1-6** (sama dengan sheet Zona di Excel) + Hasil, dengan hitungan status per zona, kolom pencarian, kode butir + judul singkat (pertanyaan lengkap tampil saat kursor diarahkan). Pengisian butir berurutan (tombol Sebelumnya/Berikutnya), kriteria tiap pilihan, catatan TP PTN/TPSK/TPI periode lalu, validasi langsung saat mengetik, rincian jumlah → persentase otomatis, unggah PDF bukti, tombol Claude |
-| Validasi | Semua butir berwarna merah/kuning/hijau; klik baris untuk langsung membuka butirnya |
-| Pelajaran Penilaian Lalu | Butir yang diturunkan, alasan terbanyak, persentase penurunan per komponen (bahan pelatihan PIC) |
-| Draf Dokumen (Claude) | Draf laporan monev, tindak lanjut, notulen, dan lain-lain dari fakta kegiatan nyata → .docx |
-| Keterangan Kode | Cara membaca kode (mis. `P1.ii.c` = Pemenuhan, Zona 1, sub-komponen ii, butir c) dan tabel semua kode beserta pertanyaan lengkapnya |
-| Prosedur Mutu (SOP) | Pemeriksaan daftar PM + PDF: nomor ganda, nama file vs nomor dokumen, versi vs nomor revisi, kop "Halaman x dari N", status upload |
-| Ekspor | Lembar isian Excel (urutan = baris LKE) dan laporan validasi Word |
-| Pengaturan | Tahun, impor isian/riwayat dari Excel, unggah logo & gambar banner header, status & biaya Claude, jejak perubahan |
+Analisis atas riwayat penilaian unit menunjukkan pola yang konsisten: sebagian besar butir memperoleh nilai evaluator yang lebih rendah daripada klaim unit. Analisis isi catatan TPI dan TPSK mengelompokkan alasan penurunan ke dalam lima kategori:
+- dokumen tidak tersedia atau tidak relevan;
+- cakupan belum menyeluruh;
+- inovasi tidak terbukti;
+- tindak lanjut tidak dibuktikan;
+- kegiatan tidak dilaksanakan secara berkala.
 
-Mesin nilai sudah diuji terhadap file LKE Excel asli: nilai Pengungkit untuk keempat kolom penilai (Unit, TP PTN, TPSK, TPI) **sama persis** dengan hasil rumus Excel. Satu perbedaan sengaja: Excel memakai `AVERAGE()` yang **mengabaikan** butir kosong, sedangkan dashboard menghitung butir kosong = 0 agar butir yang belum diisi tidak tersembunyi.
+Dengan demikian, persoalan utamanya bukan kesalahan administratif pengunggahan, melainkan **ketidaksesuaian antara klaim dan bukti** (*overclaiming*).
 
-## Instalasi
+## 2. Tujuan
 
-Butuh R ≥ 4.1 (disarankan RStudio). Di konsol R:
+1. Mengarahkan penanggung jawab butir (PIC) mengisi LKE secara berurutan dan konsisten dengan kriteria.
+2. Mendeteksi ketidaksesuaian bentuk sejak dini, sebelum isian diajukan.
+3. Menyediakan jejak audit, pengendalian dokumen, dan mekanisme tindakan korektif yang selaras dengan prinsip sistem manajemen mutu.
+4. Menyajikan estimasi risiko secara jujur, termasuk ketidakpastian dan keterbatasannya.
+
+## 3. Metode
+
+### 3.1 Perhitungan skor
+
+- Nilai butir kategorik dikonversi ke skala 0–1: Ya/Tidak = 1/0; A–C = 1/0,5/0; A–D = 1/0,67/0,33/0; A–E = 1/0,75/0,5/0,25/0.
+- Butir persentase dihitung dari rinciannya.
+- Skor sub-komponen adalah rerata nilai butir dikalikan bobot, dan skor komponen adalah jumlah skor sub-komponen.
+- Mesin skor telah diverifikasi terhadap templat Excel resmi: skor Pengungkit untuk keempat penilai (unit, TP PTN, TPSK, TPI) identik dengan hasil rumus Excel.
+- **Satu perbedaan disengaja:** butir kosong dihitung nol, sedangkan fungsi `AVERAGE()` di Excel mengabaikannya.
+
+### 3.2 Validasi berbasis aturan
+
+| Kode | Tingkat | Aturan |
+|---|---|---|
+| V01–V02 | merah | Jawaban, rincian, atau nilai survei belum diisi atau di luar rentang |
+| V03 | merah | Penyebut persentase bernilai nol (menghasilkan `#DIV/0!` pada templat Excel) |
+| V04 | kuning | Pembilang melampaui penyebut (persentase dibatasi 100%) |
+| V05 | merah | Jumlah wajib lapor LHKPN/LHKASN tidak sama dengan agregat rinciannya |
+| V06 | kuning | Data pelanggaran atau pengaduan tidak konsisten secara logis |
+| V07 | merah | Rincian berlabel sama diisi berbeda antarbutir |
+| V10 | merah/kuning | Narasi belum disusun atau kurang dari ambang minimal |
+| V11–V12 | merah/kuning | Bukti tidak tersedia, tautan tidak valid, atau judul kurang deskriptif |
+| V13 | kuning | Tidak terdapat bukti periode berjalan |
+| V15 | kuning | Identifikasi dokumen belum terkendali, misalnya sufiks unduhan "(1)" atau salinan (ISO 9001:2015 klausul 7.5.2) |
+| V16 | info | Nama dokumen belum memuat kode butir |
+| V17 | info | Terdapat dokumen historis (tiga tahun atau lebih sebelum periode penilaian) |
+| V20 | kuning | Unsur kriteria jawaban yang diklaim tidak tercermin pada narasi maupun judul bukti |
+| V21 | info | Daftar periksa siklus PDCA: tahap yang belum tampak |
+| V30 | info | Catatan evaluator terdahulu atas butir yang diturunkan |
+| V31 | kuning | Klaim diajukan kembali dengan narasi yang identik dengan penilaian terdahulu |
+
+**Status butir** ditentukan sebagai berikut:
+- *merah* bila memuat sekurang-kurangnya satu temuan merah;
+- *kuning* bila hanya memuat temuan kuning;
+- *hijau* bila tidak memuat temuan merah maupun kuning.
+
+Ambang angka diatur di `R/00_konfigurasi.R`.
+
+### 3.3 Penjaminan mutu berorientasi standar
+
+- **Daftar periksa siklus PDCA.** Judul bukti dan narasi diklasifikasikan ke tahap Perencanaan/penetapan, Pelaksanaan, Pemantauan-evaluasi, dan Tindak lanjut.
+- **Pengendalian identifikasi dokumen** dengan konvensi nama `TAHUN_KODE_JENIS_URAIAN`, misalnya `2026_P1.i.a_SK_Pembentukan Tim Pembangunan ZI`.
+- **Register tindakan korektif** (ISO 9001:2015 klausul 10.2; ISO 37001:2016 klausul 10.1).
+  - Siklus status: Terbuka → Dalam proses → Selesai → Terverifikasi efektif.
+  - Status *Selesai* mensyaratkan rumusan akar masalah.
+  - Status *Terverifikasi efektif* mensyaratkan bukti penutupan.
+- **Keselarasan ISO.** Setiap sub-komponen LKE dipetakan secara indikatif ke klausul ISO 9001:2015 dan ISO 37001:2016 (`data/pemetaan_iso.csv`). Kesiapan per klausul dihitung sebagai proporsi butir terkait yang berstatus hijau.
+  - Pemetaan ini bukan pernyataan kesesuaian; kesesuaian hanya dapat ditetapkan melalui audit sertifikasi.
+
+### 3.4 Analisis sensitivitas dan evaluasi validator
+
+**Skenario skor.** Skor klaim disandingkan dengan dua skenario:
+- *Skenario konservatif:* butir merah dinilai pada tingkat terendah, dan butir kuning diturunkan satu tingkat.
+- *Skenario rasio historis:* skor klaim per komponen dikalikan rasio nilai TPI terhadap klaim pada penilaian terdahulu.
+
+Kedua skenario merupakan ilustrasi rentang risiko, bukan prediksi.
+
+**Evaluasi validator.** Kinerja diagnostik validator dievaluasi terhadap keputusan TPI pada data riwayat, menggunakan matriks konfusi, sensitivitas, spesifisitas, dan nilai prediktif positif. Setiap ukuran disertai interval kepercayaan Wilson 95%.
+
+### 3.5 Pra-penilaian berbantuan Claude
+
+- **Penilaian unsur kriteria.** Model menguraikan kriteria jawaban menjadi unsur yang dapat diuji, lalu menilai setiap unsur sebagai *terbukti*, *tidak terbukti*, atau *tidak dapat diverifikasi*.
+- **Rujukan dan keyakinan.** Model menyebutkan dokumen yang menjadi dasar penilaian, menyatakan tingkat keyakinannya, dan menguji catatan evaluator terdahulu sebagai hipotesis kelemahan.
+- **Larangan mengarang.** Draf narasi dan draf dokumen dilarang mengarang fakta; informasi yang belum tersedia ditandai `[PERLU DIISI]`.
+
+## 4. Temuan pengembangan yang memengaruhi rancangan
+
+1. **Kelengkapan nama dokumen bukan prediktor nilai.** Pada telaah repositori bukti unit, butir dengan tahap PDCA terlengkap pada nama dokumen justru seluruhnya diturunkan TPI.
+   - Penjelasan yang paling mungkin adalah kausalitas terbalik: dokumen revisi ditambahkan setelah butir diturunkan.
+   - Karena itu indikator PDCA hanya diposisikan sebagai daftar periksa, bukan skor.
+2. **Validator memiliki kemampuan diskriminasi terbatas.** Nilai prediktif positifnya hanya sedikit melampaui prevalensi penurunan.
+   - Validator efektif untuk mendeteksi ketidaksesuaian bentuk, tetapi penilaian substansi tetap memerlukan telaah isi dokumen.
+3. **Identifikasi dokumen belum terkendali.** Hampir separuh nama dokumen bukti tidak memuat tahun, dan sebagian bersufiks unduhan berulang. Temuan ini mendasari aturan V15–V17.
+
+## 5. Keterbatasan
+
+- Validasi menilai bentuk dan kelengkapan, bukan substansi dokumen.
+- Kategorisasi unsur kriteria dan tahap PDCA bergantung pada pencocokan kata kunci.
+- Evaluasi validator bersifat dalam-sampel (*in-sample*), sehingga kinerja pada periode berikutnya berpotensi lebih rendah.
+- Pemetaan ISO bersifat indikatif.
+- Skor klaim dan skenario tidak dapat ditafsirkan sebagai prediksi nilai Tim Penilai.
+- Aplikasi belum memiliki autentikasi pengguna. Pemakaian bersama memerlukan penempatan di server institusi di balik SSO atau VPN.
+
+## 6. Instalasi dan penggunaan
+
+**Prasyarat:** R 4.1 atau lebih baru; disarankan memakai RStudio.
 
 ```r
 install.packages(c("shiny", "bslib", "DT", "dplyr", "readxl", "openxlsx", "httr2",
                    "jsonlite", "RSQLite", "DBI", "ggplot2", "pdftools", "officer", "testthat"))
 ```
 
-## Menyiapkan data (sekali per periode)
+**Menjalankan aplikasi:** buka `app.R` di RStudio lalu pilih **Run App**, atau jalankan:
 
-Semua perintah dijalankan dari folder `lke-zi-dashboard`.
+```r
+shiny::runApp("lke-zi-dashboard")
+```
+
+**Menyiapkan data** (sekali per periode; perintah dijalankan dari folder `lke-zi-dashboard`):
 
 ```bash
 Rscript scripts/siapkan_data.R --riwayat "Indeks_Revisi_FK_UNHAS.xlsx"
@@ -49,97 +139,67 @@ Rscript scripts/siapkan_data.R --riwayat "Indeks_Revisi_FK_UNHAS.xlsx"
 Rscript scripts/siapkan_data.R --isian "Indeks_Revisi_FK_UNHAS.xlsx" --tahun 2027
 ```
 
-- `--riwayat` menyimpan jawaban dan catatan evaluator (kolom TP PTN/TPSK/TPI) agar muncul di setiap butir.
-- `--isian` mengisi isian periode baru dengan isian lama sebagai draf (butir yang sudah diisi tidak ditimpa). Keduanya juga tersedia di menu **Pengaturan**.
-- `--rubrik` hanya diperlukan bila Kementerian mengubah template. Butuh file berformat Indeks Revisi, yaitu yang kolom A-nya berisi penanda `PARENT`/`SUB`.
+Kedua langkah ini juga tersedia di menu **Pengaturan**. Data internal disimpan di `data/lokal/` dan tidak disertakan ke GitHub.
 
-Data hasil impor disimpan di `data/lokal/`, dan folder ini **tidak ikut ke GitHub**.
+**Menghubungkan Claude (opsional):**
+1. Salin `.Renviron.contoh` menjadi `.Renviron`.
+2. Isi `ANTHROPIC_API_KEY` dengan kunci API dari console.anthropic.com. Kunci ini tidak sama dengan langganan Claude.ai.
+3. Mulai ulang R.
 
-## Menjalankan
+Model bawaan adalah `claude-opus-5-5`, dengan *fallback* sisi server bila permintaan ditolak. Sebelum mengirim dokumen ke Claude, mintalah persetujuan pimpinan, dan hindari dokumen yang memuat data pribadi sensitif.
 
-```r
-shiny::runApp("lke-zi-dashboard")
-```
+## 7. Navigasi aplikasi
 
-Tahun penilaian dan nama unit diatur lewat `.Renviron` (lihat `.Renviron.contoh`) atau di menu Pengaturan.
+| Menu | Isi |
+|---|---|
+| Beranda | Skor klaim, perbandingan dengan penilaian terdahulu, status per komponen, analisis sensitivitas |
+| Pengisian LKE | Daftar butir per zona, kriteria, catatan evaluator, lencana klausul ISO, daftar periksa PDCA, validasi seketika, Claude |
+| Penjaminan Mutu | Status validasi butir; register tindakan korektif; keselarasan ISO |
+| Analisis | Analisis penilaian terdahulu; evaluasi kinerja validator |
+| Dokumen | Draf dokumen berbasis fakta; pemeriksaan Prosedur Mutu; ekspor Excel dan Word |
+| Glosarium Kode | Konvensi kode butir, rumusan lengkap, dan padanan klausul ISO |
+| Pengaturan | Parameter, impor data, logo dan banner, pemakaian Claude, jejak audit |
 
-## Menghubungkan Claude
+**Ekspor Excel** berisi isian, temuan, rekap skor, dan register tindakan korektif.
 
-1. Langganan Claude.ai (Pro/Team) **tidak bisa** disambungkan ke aplikasi lain. Yang dibutuhkan adalah **API key** dari <https://console.anthropic.com>, dengan tagihan terpisah per pemakaian. Pengadaannya sebaiknya lewat akun institusi.
-2. Salin `.Renviron.contoh` menjadi `.Renviron` di folder ini, lalu isi `ANTHROPIC_API_KEY=...`.
-3. Mulai ulang R. Menu Pengaturan akan menampilkan "Claude aktif".
+**Laporan Word** berstruktur: pengendalian dokumen; pendahuluan; metode; hasil; pembahasan; keterbatasan; simpulan dan rekomendasi; serta lampiran temuan dan tindakan korektif.
 
-Model bawaan: `claude-opus-5-5` (bisa diganti lewat `ZI_CLAUDE_MODEL`). Bila filter keamanan menolak permintaan, server otomatis mencoba model cadangan (`fallbacks: "default"`).
+**Tampilan** mengikuti identitas visual situs fakultas (ribbon merah, kartu marun, aksen emas) dan responsif:
+- mobile: < 768 px;
+- tablet: 768–1023 px;
+- desktop: ≥ 1024 px, dengan lebar konten maksimum 1440 px.
 
-**Perkiraan biaya** (estimasi, tarif US$4 per 1 juta token masukan dan US$20 per 1 juta token keluaran): satu pra-penilaian tanpa PDF sekitar 3–6 ribu token (≈ US$0,02–0,06). Dengan PDF, setiap halaman menambah sekitar 1,5–3 ribu token, sehingga 30 halaman ≈ US$0,25–0,45 per butir. Pemakaian aktual tercatat di menu Pengaturan.
-
-**Privasi**: narasi dan PDF yang dikirim ke Claude diproses oleh Anthropic. Jangan kirim dokumen berisi data pribadi sensitif (NIK, data kesehatan, rincian LHKPN). Mintalah persetujuan pimpinan/unit TI sebelum dipakai.
-
-## Tampilan
-
-- Tema mengikuti situs med.unhas.ac.id: ribbon merah `#A80C0D` yang menempel di atas saat di-scroll (dengan efek hover), kartu merah marun `#690A08`, aksen emas `#F9B03D`, judul biru tua `#162232`, font Roboto.
-- Banner tampil penuh di Beranda dan menjadi pita tipis di menu lain.
-- Ganti logo dan banner lewat **Pengaturan -> Tampilan header**. File disimpan di `www/kustom/` dan sengaja tidak ikut ke GitHub (repo publik; banner fakultas memuat foto pimpinan).
-
-## Tampilan responsif
-
-| Layar | Lebar | Perilaku |
-|---|---|---|
-| Mobile | < 768 px | Menu lewat tombol hamburger; daftar butir (Isi LKE) jadi laci yang dibuka tombol "Daftar butir per zona"; kartu KPI 1 kolom; tabel digeser horizontal |
-| Tablet | 768-1023 px | Menu hamburger; panel samping bisa diciutkan (tombol panah); KPI 2 kolom |
-| Desktop | >= 1024 px | Menu horizontal (label singkat di 1024-1279 px); panel samping tampil penuh; KPI 4 kolom |
-
-Konten maksimum 1440 px di tengah layar; navbar sticky; target sentuh minimal 44x44 px pada layar sentuh. Pengaturan di `R/90_responsif.R`. Uji otomatis (Node.js + Playwright): `node tests/ui/uji_responsif.js`.
-
-## Aturan validasi otomatis
-
-| Kode | Tingkat | Aturan |
-|---|---|---|
-| V01–V02 | merah | Jawaban/rincian/nilai survei kosong atau di luar rentang |
-| V03 | merah | Penyebut persentase = 0 (di Excel menjadi `#DIV/0!` dan merusak total Pengungkit) |
-| V04 | kuning | Pembilang > penyebut (nilai dipotong 100%) |
-| V05 | merah | Jumlah wajib lapor LHKPN/LHKASN ≠ jumlah rinciannya |
-| V06 | kuning | Data pelanggaran/pengaduan tidak logis |
-| V07 | merah | Rincian berlabel sama diisi berbeda antarbutir (mis. jumlah perubahan agen perubahan) |
-| V10 | merah/kuning | Narasi kosong / kurang dari 300 karakter |
-| V11–V12 | merah/kuning | Bukti kosong, tautan tidak valid, judul dokumen terlalu umum |
-| V13 | kuning | Tidak ada bukti bertahun periode berjalan |
-| V20 | kuning | Kriteria jawaban menuntut "berkala/seluruh/inovasi/tindak lanjut/pimpinan/…" tetapi narasi dan judul bukti tidak menunjukkannya |
-| V30 | info | Catatan evaluator periode lalu bila butir ini diturunkan |
-| V31 | kuning | Masih mengklaim nilai tinggi dengan narasi yang sama persis seperti saat diturunkan |
-
-Ambang angka dapat diubah di `R/00_konfigurasi.R`.
-
-## Pemakaian bersama (banyak PIC)
-
-- Aplikasi ini **belum memiliki login**. Siapa pun yang bisa membuka alamatnya bisa mengubah isian. Untuk pemakaian bersama, pasang di server kampus (Shiny Server / Posit Connect) di balik login SSO atau VPN.
-- Setiap simpanan mencatat nama PIC dan waktunya (menu Pengaturan → Jejak perubahan).
-- SQLite (`data/lokal/zi.sqlite`) cukup untuk tim kecil. Cadangkan file ini secara rutin.
-- Tombol Claude menahan sesi pengguna tersebut selama 30–90 detik saat menunggu jawaban.
-
-## Struktur
+## 8. Struktur berkas
 
 ```
-app.R                  antarmuka & alur Shiny
-R/00_konfigurasi.R     pengaturan (tahun, model, ambang)
-R/10_rubrik.R          rumus nilai (identik Excel)
-R/20_validasi.R        aturan validasi
-R/30_claude.R          integrasi Claude (httr2, keluaran JSON terstruktur)
-R/40_penyimpanan.R     SQLite + jejak + log AI
-R/50_ekspor.R          Excel & Word
-R/60_sop.R             pemeriksa daftar PM & PDF SOP
-R/70_impor.R           pembaca template LKE Excel
-R/90_responsif.R       tata letak responsif (grid, panel samping, breakpoint)
-R/80_tampilan.R        tema merah-marun-emas (acuan med.unhas.ac.id), header & ribbon; ubah daftar WARNA untuk ganti tema
-www/gambar/            logo & banner bawaan (www/kustom/ = unggahan Anda, tidak di-commit)
-data/rubrik_lke.csv    113 butir + 24 rincian, kriteria & bobot (publik)
-data/lokal/            data internal unit (TIDAK di-commit)
-scripts/siapkan_data.R impor dari Excel
-tests/testthat/        uji otomatis
+app.R                   antarmuka dan alur server Shiny
+R/00_konfigurasi.R      parameter (tahun, model, ambang validasi)
+R/10_rubrik.R           rumus skor (identik templat Excel)
+R/20_validasi.R         aturan validasi V01-V31
+R/30_claude.R           integrasi Claude (keluaran JSON terstruktur)
+R/40_penyimpanan.R      SQLite: isian, jejak audit, log AI, register tindakan korektif
+R/50_ekspor.R           ekspor Excel dan laporan Word berstruktur akademis
+R/60_sop.R              pemeriksaan daftar dan berkas Prosedur Mutu
+R/70_impor.R            pembaca templat LKE Excel
+R/80_tampilan.R         tema, header, dan ribbon
+R/85_mutu.R             PDCA, kendali nama dokumen, keselarasan ISO, skenario skor, evaluasi validator
+R/90_responsif.R        tata letak responsif
+data/rubrik_lke.csv     113 butir dan 24 rincian beserta kriteria dan bobot
+data/pemetaan_iso.csv   pemetaan indikatif sub-komponen ke klausul ISO 9001:2015 dan ISO 37001:2016
+data/lokal/             data internal unit (tidak disertakan ke GitHub)
+tests/testthat/         uji unit
+tests/ui/               uji antarmuka responsif (Node.js dan Playwright)
 ```
 
-Uji otomatis:
+**Pengujian:**
 
 ```bash
 Rscript -e 'testthat::test_dir("tests/testthat")'
 ```
+
+## 9. Rujukan
+
+- Peraturan Menteri Pendayagunaan Aparatur Negara dan Reformasi Birokrasi Nomor 90 Tahun 2021 tentang Pembangunan dan Evaluasi Zona Integritas Menuju Wilayah Bebas dari Korupsi dan Wilayah Birokrasi Bersih dan Melayani di Instansi Pemerintah.
+- International Organization for Standardization. (2015). *ISO 9001:2015 Quality management systems — Requirements*.
+- International Organization for Standardization. (2016). *ISO 37001:2016 Anti-bribery management systems — Requirements with guidance for use*.
+- Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. *Journal of the American Statistical Association, 22*(158), 209–212.

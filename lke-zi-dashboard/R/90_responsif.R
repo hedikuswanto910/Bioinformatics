@@ -92,7 +92,16 @@ nav.navbar .nav-link::after { left: 0 !important; right: auto !important; top: 0
 nav.navbar .nav-link:hover::after { width: 4px; }
 nav.navbar .nav-link.active::after { width: 4px; }
 .label-pendek { display: none; }
+/* Tanda panah menu dropdown: memakai segitiga CSS, bukan garis bawah emas */
+nav.navbar .nav-link.dropdown-toggle::after {
+  position: static !important; display: inline-block; width: 0 !important; height: 0 !important; margin-left: .4em;
+  vertical-align: .2em; background: none !important; border-radius: 0 !important;
+  border-top: .32em solid currentColor; border-right: .32em solid transparent; border-left: .32em solid transparent; border-bottom: 0;
+  transition: transform .2s ease !important; }
+nav.navbar .nav-link.dropdown-toggle.show::after { transform: rotate(180deg); }
 nav.navbar .navbar-brand { font-size: 1rem; }
+
+nav.navbar .dropdown-menu { position: static; float: none; box-shadow: none; border-radius: 0; margin: 0 0 .25rem 1rem; }
 
 /* ---------- KPI 1 kolom ---------- */
 .kisi-kpi { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1fr); margin-bottom: 1rem; }
@@ -150,7 +159,7 @@ body.banner-ringkas #gambar-banner { height: 4.5rem; max-height: 4.5rem; }
 
 /* ---------- layar sentuh: target minimal 44 x 44 px ---------- */
 @media (pointer: coarse) {
-  .btn, .nav-link, a.item-butir, .accordion-button, .navbar-toggle, .selectize-input,
+  .btn, .nav-link, .dropdown-item, a.item-butir, .accordion-button, .navbar-toggle, .selectize-input,
   .form-control, .form-select, .paginate_button, .dataTables_length select, .dataTables_filter input,
   .tombol-ciut, .tombol-tutup, .tombol-laci, .action-button, .btn-file {
     min-height: 2.75rem; }
@@ -204,6 +213,8 @@ body.banner-ringkas #gambar-banner { height: 4.5rem; max-height: 4.5rem; }
   nav.navbar .navbar-nav { flex-direction: row; flex-wrap: nowrap; padding-bottom: 0; overflow-x: auto; scrollbar-width: none; }
   nav.navbar .navbar-nav::-webkit-scrollbar { display: none; }
   nav.navbar .nav-link { padding: 1.15rem .7rem !important; white-space: nowrap; font-size: .9rem; }
+  nav.navbar .dropdown-menu { position: absolute; margin: 0; border-radius: 0 0 10px 10px; box-shadow: 0 10px 24px rgba(78,7,0,.35); }
+  nav.navbar .navbar-nav { overflow: visible; }
   nav.navbar .nav-link::after { top: auto !important; bottom: 0 !important; left: 50% !important; right: 50% !important;
     width: auto !important; height: 4px !important; border-radius: 4px 4px 0 0; transition: left .25s ease, right .25s ease !important; }
   nav.navbar .nav-link:hover::after { left: 14% !important; right: 14% !important; }
@@ -250,7 +261,7 @@ function zi_ciut(id) { var el = document.getElementById(id); if (el) el.classLis
   });
   // tutup menu & laci setelah memilih (mobile/tablet)
   document.addEventListener('click', function(e) {
-    var link = e.target.closest('#nav .nav-link');
+    var link = e.target.closest('#nav .nav-link:not(.dropdown-toggle), #nav .dropdown-item');
     if (link && window.innerWidth < 1024) {
       var c = document.querySelector('nav.navbar .navbar-collapse.show');
       if (c && window.bootstrap) bootstrap.Collapse.getOrCreateInstance(c).hide();

@@ -126,8 +126,8 @@ test_that("panggilan Claude diproses dengan benar (respons tiruan)", {
       usage = list(input_tokens = 1000, output_tokens = 200),
       content = list(list(type = "thinking", thinking = ""),
                      list(type = "text", text = jsonlite::toJSON(list(
-                       jawaban_disarankan = "B", tingkat_risiko = "tinggi", alasan = "Tidak berkala",
-                       unsur_kriteria = list(list(unsur = "berkala", terbukti = FALSE, keterangan = "1 periode")),
+                       jawaban_disarankan = "B", tingkat_risiko = "tinggi", tingkat_keyakinan = "sedang", alasan = "Tidak berkala",
+                       unsur_kriteria = list(list(unsur = "berkala", status = "tidak_terbukti", dasar_bukti = "Laporan TW I", keterangan = "1 periode")),
                        dokumen_perlu_ditambah = list("Laporan sosialisasi TW II-IV"),
                        perbaikan_narasi = "Sebutkan jadwal"), auto_unbox = TRUE)))))
   }
@@ -135,6 +135,7 @@ test_that("panggilan Claude diproses dengan benar (respons tiruan)", {
   h <- httr2::with_mocked_responses(tiruan, claude_validasi_butir(b, list(jawaban = "A", narasi = "x", bukti = "")))
   expect_true(h$ok)
   expect_equal(h$data$jawaban_disarankan, "B")
+  expect_equal(h$data$unsur_kriteria$status, "tidak_terbukti")
   expect_equal(h$biaya, (1000 * 4 + 200 * 20) / 1e6)
 })
 
@@ -165,4 +166,55 @@ test_that("penyimpanan SQLite: simpan, timpa, dan jejak", {
   expect_equal(nrow(d), 1); expect_equal(d$jawaban, "Tidak")
   expect_equal(nrow(baca_jejak(con, 2026)), 2)
   expect_equal(nrow(baca_isian(con, 2027)), 0)
+})
+
+# ---------------------------------------------------------------- modul mutu
+test_that("tahap PDCA dikenali dari judul bergaris bawah dan singkatan", {
+  pd <- tahap_pdca(c("2026_SK Tim ZI", "Laporan_TL monev triwulan", "Rev_2.i.a dokumen revisi"))
+  expect_true(all(pd[c("P", "C", "A")]))
+  expect_false(pd[["D"]])
+})
+
+test_that("kendali nama dokumen menandai sufiks unduhan berulang", {
+  k <- cek_kendali_nama(c("SK Tim (1).pdf", "copy_of notulen", "2026_P1.i.a_SK_Tim"), "P1.i.a")
+  expect_length(k$sufiks, 2)
+  expect_null(k$tanpa_kode)
+})
+
+test_that("pemetaan ISO lengkap dan setiap klausul memiliki nama sesuai standarnya", {
+  akar <- normalizePath(file.path(testthat::test_path(), "..", ".."))
+  pm <- muat_pemetaan_iso(file.path(akar, "data/pemetaan_iso.csv"))
+  expect_setequal(pm$sub_kode, unique(RB$sub_kode[RB$tipe == "butir"]))
+  for (s in c("iso9001", "iso37001")) {
+    k <- unique(trimws(unlist(strsplit(pm[[s]], ";")))); k <- k[nzchar(k)]
+    expect_true(all(k %in% names(KLAUSUL_ISO[[s]])), info = s)
+  }
+  expect_false(identical(KLAUSUL_ISO$iso9001[["10.2"]], KLAUSUL_ISO$iso37001[["10.2"]]))
+})
+
+test_that("skenario konservatif tidak pernah melebihi skor klaim", {
+  j <- isi_semua("A")
+  isian <- data.frame(kode = names(j), jawaban = unname(j), narasi = "", bukti = "", stringsAsFactors = FALSE)
+  st <- status_butir(RB, isian, validasi_semua(RB, isian, NULL, 2026))
+  sk <- skenario_skor(RB, isian, st)
+  expect_equal(sk$pengungkit[1], 60, tolerance = 1e-9)
+  expect_lte(sk$pengungkit[2], sk$pengungkit[1])
+})
+
+test_that("interval Wilson berada dalam [0, 1] dan memuat proporsi titik", {
+  ci <- ci_wilson(45, 74)
+  expect_true(ci[1] >= 0 && ci[2] <= 1 && ci[1] < 45 / 74 && ci[2] > 45 / 74)
+  expect_equal(ci_wilson(0, 10)[1], 0)
+})
+
+test_that("register tindakan korektif menegakkan syarat verifikasi", {
+  con <- buka_db(tempfile(fileext = ".sqlite")); on.exit(DBI::dbDisconnect(con))
+  d <- list(kode = "P1.ii.c", temuan = "Sosialisasi tidak berkala", tindakan = "Kalender triwulanan",
+            pic = "Tim ZI", tenggat = "2026-12-31", status = "Terverifikasi efektif")
+  expect_length(periksa_capa(d), 2)
+  d$status <- "Terbuka"; expect_length(periksa_capa(d), 0)
+  simpan_capa(con, d, 2026)
+  x <- baca_capa(con, 2026); expect_equal(nrow(x), 1)
+  simpan_capa(con, modifyList(d, list(status = "Selesai", akar_masalah = "Tidak ada kalender")), 2026, id = x$id)
+  expect_equal(baca_capa(con, 2026)$status, "Selesai")
 })

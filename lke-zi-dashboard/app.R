@@ -18,6 +18,7 @@ options(DT.options = list(scrollX = TRUE, autoWidth = FALSE, language = list(
 
 RB <- muat_rubrik()
 RB$grup <- ifelse(RB$bagian == "Hasil", RB$area_kode, paste0(RB$area_kode, RB$komponen_no))
+PEMETAAN <- muat_pemetaan_iso()
 BUTIR <- RB[RB$tipe == "butir", ]
 BUTIR <- BUTIR[order(BUTIR$baris_excel), ]
 
@@ -72,6 +73,23 @@ kotak_temuan <- function(tm) {
 
 teks_pra <- function(...) tags$div(style = "white-space: pre-wrap; font-size: .9rem;", ...)
 
+# Lencana padanan klausul ISO untuk satu sub-komponen
+lencana_iso <- function(sub_kode) {
+  m <- PEMETAAN[PEMETAAN$sub_kode == sub_kode, ]
+  if (!nrow(m)) return(NULL)
+  isi <- c(if (nzchar(m$iso9001)) paste("ISO 9001:2015", gsub(";", ", ", m$iso9001)),
+           if (nzchar(m$iso37001)) paste("ISO 37001:2016", gsub(";", ", ", m$iso37001)))
+  if (!length(isi)) return(NULL)
+  div(class = "lencana-iso", title = paste("Padanan indikatif:", m$catatan),
+      lapply(isi, function(x) span(class = "badge-iso", x)))
+}
+
+# Isian periode terdahulu (dari riwayat) dalam format isian, untuk evaluasi validator
+isian_dari_riwayat <- function(rw) {
+  data.frame(kode = rw$kode, jawaban = rw$jawaban_unit, narasi = rw$narasi,
+             bukti = mapply(pasangkan_bukti, rw$daftar_bukti, rw$tautan_bukti, USE.NAMES = FALSE), stringsAsFactors = FALSE)
+}
+
 # =============================================================================
 # UI
 # =============================================================================
@@ -91,135 +109,171 @@ ui <- page_navbar(
   # ---------------------------------------------------------------- Beranda
   nav_panel("Beranda",
     kisi_kpi(
-      kartu_kpi("Nilai klaim Pengungkit", "vb_pengungkit", "gauge-high"),
-      kartu_kpi("Nilai klaim Hasil", "vb_hasil", "chart-line"),
-      kartu_kpi("Butir siap (hijau)", "vb_hijau", "circle-check"),
-      kartu_kpi("Butir merah / kuning (perlu perbaikan)", "vb_merah", "triangle-exclamation")
+      kartu_kpi("Skor klaim komponen Pengungkit", "vb_pengungkit", "gauge-high"),
+      kartu_kpi("Skor klaim komponen Hasil", "vb_hasil", "chart-line"),
+      kartu_kpi("Butir memenuhi validasi", "vb_hijau", "circle-check"),
+      kartu_kpi("Butir kritis / berisiko", "vb_merah", "triangle-exclamation")
     ),
     kisi(desktop = c(7, 5), tablet = 1,
-      card(card_header("Klaim saat ini vs penilaian evaluator sebelumnya (% dari bobot)"),
+      card(card_header("Perbandingan skor klaim dan penilaian evaluator terdahulu (% terhadap bobot)"),
            plotOutput("plot_komponen", height = "auto")),
-      card(card_header("Progres per komponen"), DT::DTOutput("tbl_progres", fill = FALSE))
+      card(card_header("Status validasi per komponen"), DT::DTOutput("tbl_progres", fill = FALSE))
     ),
-    card(card_header("Cara memakai"), markdown("
-1. **Isi LKE**: kerjakan butir berurutan. Setiap butir menampilkan kriteria, catatan evaluator periode lalu, dan validasi otomatis yang langsung berubah saat Anda mengetik.
-2. **Validasi**: lihat semua butir merah/kuning, klik baris untuk langsung menuju butir itu.
-3. **Claude** (opsional): pra-penilaian butir berdasarkan narasi + PDF bukti, dan draf narasi tanpa mengarang fakta.
-4. **Ekspor**: unduh lembar isian Excel (urutan sama dengan LKE) dan laporan validasi Word untuk rapat Tim ZI.
+    kisi(desktop = c(5, 7), tablet = 1,
+      card(card_header("Analisis sensitivitas skor"), DT::DTOutput("tbl_skenario", fill = FALSE), uiOutput("ui_skenario_catatan")),
+      card(card_header("Petunjuk penggunaan"), markdown("
+1. **Pengisian LKE** - butir dikerjakan secara berurutan per zona. Setiap butir menyajikan kriteria jawaban, catatan evaluator periode terdahulu, daftar periksa siklus PDCA, dan hasil validasi otomatis yang diperbarui seketika.
+2. **Penjaminan Mutu** - status validasi seluruh butir, register tindakan korektif (ISO 9001:2015 klausul 10.2), dan tingkat keselarasan dengan klausul ISO 9001 dan ISO 37001.
+3. **Analisis** - pola penurunan nilai pada penilaian terdahulu serta evaluasi kinerja diagnostik validator otomatis.
+4. **Dokumen** - draf dokumen berbasis fakta, pemeriksaan Prosedur Mutu, dan ekspor lembar isian serta laporan validasi.
 
-Nilai di halaman ini adalah **nilai yang diklaim unit**, bukan prediksi nilai evaluator. Butir kosong dihitung 0.
+Skor pada halaman ini merupakan **skor klaim unit**, bukan prediksi nilai evaluator. Butir yang belum diisi dihitung 0.
 "))
+    )
   ),
 
-  # ---------------------------------------------------------------- Isi LKE
-  nav_panel("Isi LKE",
+  # ---------------------------------------------------------------- Pengisian LKE
+  nav_panel(label_menu("Pengisian LKE", "Pengisian"), value = "Isi LKE",
     tata_samping("ts_isi", judul = "Daftar butir per zona", mobile = "laci",
       samping = tagList(
-        textInput("f_cari", NULL, placeholder = "Cari kode atau kata, mis. P1.ii atau SOP"),
-        selectInput("f_status", NULL, c("Tampilkan semua status" = "Semua", "Belum diisi" = "belum diisi",
-                                        "Merah" = "merah", "Kuning" = "kuning", "Hijau" = "hijau")),
+        textInput("f_cari", NULL, placeholder = "Cari kode atau kata kunci, mis. P1.ii atau SOP"),
+        selectInput("f_status", NULL, c("Semua status" = "Semua", "Belum diisi" = "belum diisi",
+                                        "Merah (kritis)" = "merah", "Kuning (berisiko)" = "kuning", "Hijau (memenuhi)" = "hijau")),
         uiOutput("ui_daftar_zona"),
-        helpText("Pertanyaan lengkap tampil di kotak 'Keterangan kode' setelah butir dibuka. Arti kode ada di menu 'Keterangan Kode'.")),
+        helpText("Rumusan pertanyaan lengkap ditampilkan pada kotak 'Keterangan kode' setelah butir dibuka. Makna kode dijelaskan pada menu Glosarium Kode.")),
       uiOutput("ui_form"))
   ),
 
-  # ---------------------------------------------------------------- Validasi
-  nav_panel("Validasi",
-    card(card_header("Status seluruh butir - klik baris untuk membuka butir"),
-         kisi(desktop = c(1, 1, 2), tablet = c(1, 1),
-           selectInput("v_status", "Status", c("Semua", "merah", "kuning", "belum diisi", "hijau")),
-           selectInput("v_area", "Area", c("Semua", "Pemenuhan", "Reform", "Hasil"))),
-         DT::DTOutput("tbl_validasi", fill = FALSE)),
-    card(card_header("Seluruh temuan"), DT::DTOutput("tbl_temuan", fill = FALSE))
+  # ---------------------------------------------------------------- Penjaminan mutu
+  nav_menu(label_menu("Penjaminan Mutu", "Mutu"), value = "menu_mutu",
+    nav_panel("Status Validasi Butir", value = "Validasi",
+      card(card_header("Status validasi seluruh butir - pilih baris untuk membuka butir"),
+           kisi(desktop = c(1, 1, 2), tablet = c(1, 1),
+             selectInput("v_status", "Status", c("Semua", "merah", "kuning", "belum diisi", "hijau")),
+             selectInput("v_area", "Area", c("Semua", "Pemenuhan", "Reform", "Hasil"))),
+           DT::DTOutput("tbl_validasi", fill = FALSE)),
+      card(card_header("Rekapitulasi temuan validasi"), DT::DTOutput("tbl_temuan", fill = FALSE))
+    ),
+    nav_panel("Tindakan Korektif", value = "Tindakan Korektif",
+      kisi(desktop = c(5, 7), tablet = 1,
+        card(card_header("Formulir tindakan korektif"),
+          selectizeInput("c_kode", "Butir LKE", c("(pilih butir)" = "", stats::setNames(BUTIR$kode, paste(BUTIR$kode, "-", BUTIR$judul)))),
+          selectInput("c_sumber", "Sumber temuan", SUMBER_CAPA),
+          textAreaInput("c_temuan", "Uraian ketidaksesuaian", rows = 3, width = "100%"),
+          actionButton("c_isi_temuan", "Ambil dari temuan validasi butir ini", class = "btn-sm btn-outline-secondary mb-2"),
+          textAreaInput("c_akar", "Analisis akar masalah", rows = 3, width = "100%",
+                        placeholder = "Mengapa ketidaksesuaian terjadi? (mis. teknik 5 Why)"),
+          textAreaInput("c_tindakan", "Tindakan korektif", rows = 3, width = "100%"),
+          kisi(desktop = c(1, 1), tablet = c(1, 1),
+            textInput("c_pic", "Penanggung jawab (PIC)"),
+            dateInput("c_tenggat", "Tenggat", value = Sys.Date() + 30, language = "id", format = "dd-mm-yyyy")),
+          selectInput("c_status", "Status", STATUS_CAPA),
+          textAreaInput("c_bukti", "Bukti penutupan dan verifikasi efektivitas", rows = 2, width = "100%"),
+          div(class = "d-flex gap-2 flex-wrap",
+            actionButton("c_simpan", "Simpan", class = "btn-primary"),
+            actionButton("c_baru", "Formulir baru", class = "btn-outline-secondary")),
+          uiOutput("c_pesan")),
+        card(card_header("Register tindakan korektif"), uiOutput("c_ringkas"), DT::DTOutput("tbl_capa", fill = FALSE),
+             helpText("Pilih baris untuk menyunting. Siklus status: Terbuka - Dalam proses - Selesai - Terverifikasi efektif (ISO 9001:2015 klausul 10.2; ISO 37001:2016 klausul 10.1)."))
+      )
+    ),
+    nav_panel("Keselarasan ISO", value = "Keselarasan ISO",
+      card(card_header("Tingkat kesiapan per klausul ISO 9001:2015 dan ISO 37001:2016"),
+           markdown("
+Pemetaan sub-komponen LKE terhadap klausul standar bersifat **indikatif**: LKE Zona Integritas bukan standar ISO, dan kesesuaian terhadap suatu klausul hanya dapat ditetapkan melalui audit sertifikasi. Tingkat kesiapan dihitung sebagai proporsi butir terkait yang berstatus *hijau* pada validasi otomatis; ukuran ini mencerminkan kelengkapan isian, bukan efektivitas penerapan."),
+           selectInput("i_standar", NULL, c("Kedua standar" = "semua", "ISO 9001:2015", "ISO 37001:2016")),
+           DT::DTOutput("tbl_iso", fill = FALSE))
+    )
   ),
 
   # ---------------------------------------------------------------- Analisis
-  nav_panel(label_menu("Pelajaran Penilaian Lalu", "Pelajaran"), value = "Pelajaran Penilaian Lalu",
-    uiOutput("ui_analisis")
+  nav_menu("Analisis", value = "menu_analisis",
+    nav_panel("Analisis Penilaian Terdahulu", value = "Pelajaran Penilaian Lalu", uiOutput("ui_analisis")),
+    nav_panel("Evaluasi Validator", value = "Evaluasi Validator", uiOutput("ui_evaluasi"))
   ),
 
   # ---------------------------------------------------------------- Dokumen
-  nav_panel(label_menu("Draf Dokumen (Claude)", "Draf Dokumen"), value = "Draf Dokumen (Claude)",
-    tata_samping("ts_dok", judul = "Formulir draf dokumen", mobile = "tumpuk",
-      samping = tagList(
-        selectInput("d_jenis", "Jenis dokumen", JENIS_DOKUMEN),
-        selectizeInput("d_butir", "Butir LKE terkait (opsional)", c("(tidak ada)" = "", stats::setNames(BUTIR$kode, paste(BUTIR$kode, "-", BUTIR$judul)))),
-        textAreaInput("d_fakta", "Fakta kegiatan yang SUDAH terjadi", rows = 14,
-          placeholder = "Contoh:\n- Rapat monev ZI triwulan II, 14 Juli 2026, R. Senat FK\n- Dipimpin Wakil Dekan II; 23 peserta (daftar hadir terlampir)\n- Temuan: 3 SOP belum dievaluasi (Legalisir, Cuti, Peminjaman Ruang)\n- Keputusan: evaluasi selesai 30 Agustus, PIC Kasubag Akademik"),
-        actionButton("d_buat", "Buat draf", class = "btn-primary"),
-        helpText("Claude dilarang mengarang fakta; bagian yang tidak ada datanya ditandai [PERLU DIISI]. Dokumen bukti yang tidak sesuai kenyataan adalah pemalsuan.")
-      ),
-      card(card_header("Draf"), uiOutput("d_hasil"), downloadButton("d_unduh", "Unduh .docx"))
+  nav_menu("Dokumen", value = "menu_dokumen",
+    nav_panel("Draf Dokumen Berbasis Fakta", value = "Draf Dokumen (Claude)",
+      tata_samping("ts_dok", judul = "Formulir draf dokumen", mobile = "tumpuk",
+        samping = tagList(
+          selectInput("d_jenis", "Jenis dokumen", JENIS_DOKUMEN),
+          selectizeInput("d_butir", "Butir LKE terkait (opsional)", c("(tidak ada)" = "", stats::setNames(BUTIR$kode, paste(BUTIR$kode, "-", BUTIR$judul)))),
+          textAreaInput("d_fakta", "Fakta kegiatan yang telah terlaksana", rows = 14,
+            placeholder = "Contoh:\n- Rapat monev ZI triwulan II, 14 Juli 2026, Ruang Senat FK\n- Dipimpin Wakil Dekan II; 23 peserta (daftar hadir terlampir)\n- Temuan: 3 SOP belum dievaluasi (Legalisir, Cuti, Peminjaman Ruang)\n- Keputusan: evaluasi selesai 30 Agustus, PIC Kasubag Akademik"),
+          actionButton("d_buat", "Susun draf", class = "btn-primary"),
+          helpText("Claude tidak diperkenankan mengarang fakta; informasi yang belum tersedia ditandai [PERLU DIISI]. Dokumen bukti yang tidak sesuai dengan kenyataan merupakan pemalsuan.")
+        ),
+        card(card_header("Draf dokumen"), uiOutput("d_hasil"), downloadButton("d_unduh", "Unduh .docx"))
+      )
+    ),
+    nav_panel("Pemeriksaan Prosedur Mutu", value = "Prosedur Mutu (SOP)",
+      tata_samping("ts_sop", judul = "Berkas yang diperiksa", mobile = "tumpuk",
+        samping = tagList(
+          fileInput("s_daftar", "Daftar Prosedur Mutu (.xlsx)", accept = ".xlsx"),
+          fileInput("s_pdf", "Berkas PDF Prosedur Mutu (dapat lebih dari satu)", accept = ".pdf", multiple = TRUE),
+          actionButton("s_periksa", "Periksa", class = "btn-primary"),
+          helpText("Pemeriksaan mencakup duplikasi nomor dokumen, kesesuaian nama berkas dengan nomor dokumen, kesesuaian versi daftar dengan nomor revisi pada PDF, penomoran halaman pada kop, dan status unggah (ISO 9001:2015 klausul 7.5.2-7.5.3).")
+        ),
+        card(card_header("Temuan pemeriksaan"), DT::DTOutput("s_temuan", fill = FALSE)),
+        card(card_header("Metadata PDF yang terbaca"), DT::DTOutput("s_pdf_tbl", fill = FALSE))
+      )
+    ),
+    nav_panel("Ekspor", value = "Ekspor",
+      kisi(desktop = c(1, 1), tablet = c(1, 1),
+        card(card_header("Lembar isian Excel"),
+             p("Buku kerja berisi seluruh isian, status validasi, skor, temuan, dan register tindakan korektif. Kolom 'Baris LKE' merujuk nomor baris pada templat resmi."),
+             downloadButton("e_excel", "Unduh Excel")),
+        card(card_header("Laporan validasi (Word)"),
+             p("Laporan berstruktur akademis (pendahuluan, metode, hasil, pembahasan, keterbatasan, simpulan dan rekomendasi) dilengkapi blok pengendalian dokumen."),
+             downloadButton("e_docx", "Unduh Word"))
+      )
     )
   ),
 
-  # ---------------------------------------------------------------- SOP
-  nav_panel(label_menu("Prosedur Mutu (SOP)", "SOP"), value = "Prosedur Mutu (SOP)",
-    tata_samping("ts_sop", judul = "Berkas yang diperiksa", mobile = "tumpuk",
-      samping = tagList(
-        fileInput("s_daftar", "Daftar PM (.xlsx)", accept = ".xlsx"),
-        fileInput("s_pdf", "File PDF SOP (boleh banyak)", accept = ".pdf", multiple = TRUE),
-        actionButton("s_periksa", "Periksa", class = "btn-primary"),
-        helpText("Memeriksa nomor dokumen ganda, nama file vs nomor dokumen, versi daftar vs nomor revisi di PDF, kop 'Halaman x dari N', dan status upload.")
-      ),
-      card(card_header("Temuan"), DT::DTOutput("s_temuan", fill = FALSE)),
-      card(card_header("Isi PDF yang terbaca"), DT::DTOutput("s_pdf_tbl", fill = FALSE))
-    )
-  ),
+  # ---------------------------------------------------------------- Glosarium
+  nav_panel(label_menu("Glosarium Kode", "Kode"), value = "Keterangan Kode",
+    card(card_header("Konvensi penulisan kode butir"), markdown("
+Rumusan pertanyaan LKE yang panjang disajikan sebagai **kode** disertai judul singkat; rumusan lengkap tersedia pada tabel di bawah dan pada kotak keterangan di halaman pengisian.
 
-  # ---------------------------------------------------------------- Ekspor
-  nav_panel("Ekspor",
-    kisi(desktop = c(1, 1), tablet = c(1, 1),
-      card(card_header("Lembar isian Excel"),
-           p("Workbook baru berisi seluruh isian, status, nilai, dan temuan; kolom 'Baris LKE' = nomor baris di template resmi."),
-           downloadButton("e_excel", "Unduh Excel")),
-      card(card_header("Laporan validasi Word"),
-           p("Ringkasan nilai klaim, status, dan daftar temuan per butir untuk rapat Tim ZI."),
-           downloadButton("e_docx", "Unduh Word"))
-    )
-  ),
-
-  # ---------------------------------------------------------------- Keterangan
-  nav_panel(label_menu("Keterangan Kode", "Kode"), value = "Keterangan Kode",
-    card(card_header("Cara membaca kode butir"), markdown("
-Pertanyaan LKE yang panjang ditampilkan sebagai **kode** + judul singkat. Arahkan kursor ke kode untuk melihat pertanyaan lengkap, atau cari di tabel di bawah.
-
-| Contoh | Arti |
+| Contoh | Makna |
 |---|---|
 | `P1.ii.c` | **P**emenuhan, **Zona 1** (Manajemen Perubahan), sub-komponen **ii**, butir **c** |
 | `R5.iii.1.1` | **R**eform, Zona 5, sub-komponen iii, kelompok 1 (LHKPN), butir 1 |
-| `R1.i.a.s2` | rincian ke-2 (angka) dari butir `R1.i.a` |
-| `H1.a` | **H**asil, area 1 (Birokrasi bersih & akuntabel), butir a |
+| `R1.i.a.s2` | rincian ke-2 (nilai numerik) dari butir `R1.i.a` |
+| `H1.a` | **H**asil, area 1 (birokrasi yang bersih dan akuntabel), butir a |
 
-Zona 1-6 sama dengan sheet *Zona 1 ... Zona 6* di file LKE Excel: 1 Manajemen Perubahan, 2 Penataan Tatalaksana, 3 Penataan Sistem Manajemen SDM Aparatur, 4 Penguatan Akuntabilitas, 5 Penguatan Pengawasan, 6 Peningkatan Kualitas Pelayanan Publik.
+Zona 1-6 berpadanan dengan lembar *Zona 1 ... Zona 6* pada berkas LKE: (1) Manajemen Perubahan, (2) Penataan Tatalaksana, (3) Penataan Sistem Manajemen SDM Aparatur, (4) Penguatan Akuntabilitas, (5) Penguatan Pengawasan, dan (6) Peningkatan Kualitas Pelayanan Publik.
+
+Konvensi penamaan dokumen bukti yang dianjurkan: **TAHUN_KODE_JENIS_URAIAN**, misalnya `2026_P1.i.a_SK_Pembentukan Tim Pembangunan ZI`.
 ")),
-    card(card_header("Daftar kode dan pertanyaan lengkap"), DT::DTOutput("tbl_kode", fill = FALSE))
+    card(card_header("Daftar kode, rumusan pertanyaan, dan padanan klausul ISO"), DT::DTOutput("tbl_kode", fill = FALSE))
   ),
 
   # ---------------------------------------------------------------- Pengaturan
   nav_panel("Pengaturan",
     kisi(desktop = c(1, 1), tablet = 1,
-      card(card_header("Umum & Claude"),
+      card(card_header("Parameter umum dan Claude"),
            numericInput("p_tahun", "Tahun penilaian", KONFIG$tahun, min = 2020, max = 2100),
            uiOutput("p_status_ai"),
            selectInput("p_effort", "Tingkat penalaran Claude (effort)", c("low", "medium", "high", "xhigh"), selected = KONFIG$effort),
-           helpText("Effort lebih tinggi = lebih teliti tetapi lebih lama dan mahal.")),
-      card(card_header("Impor dari file LKE Excel"),
-           fileInput("p_file_isian", "Isian awal dari file LKE (jawaban, narasi, bukti)", accept = ".xlsx"),
-           checkboxInput("p_timpa", "Timpa butir yang sudah diisi", FALSE),
+           helpText("Tingkat penalaran yang lebih tinggi menghasilkan telaah yang lebih cermat dengan waktu dan biaya yang lebih besar.")),
+      card(card_header("Impor dari berkas LKE (Excel)"),
+           fileInput("p_file_isian", "Isian awal dari berkas LKE (jawaban, narasi, bukti)", accept = ".xlsx"),
+           checkboxInput("p_timpa", "Timpa butir yang telah diisi", FALSE),
            actionButton("p_impor_isian", "Impor isian"),
            tags$hr(),
-           fileInput("p_file_riwayat", "Riwayat penilaian evaluator (file yang memuat kolom TP PTN/TPSK/TPI)", accept = ".xlsx"),
+           fileInput("p_file_riwayat", "Riwayat penilaian evaluator (berkas yang memuat kolom TP PTN/TPSK/TPI)", accept = ".xlsx"),
            actionButton("p_impor_riwayat", "Impor riwayat"))
     ),
-    card(card_header("Tampilan header (logo & gambar banner)"),
+    card(card_header("Tampilan header (logo dan gambar banner)"),
          kisi(desktop = c(5, 5, 2), tablet = c(1, 1),
            fileInput("p_logo", "Logo (PNG/SVG, latar transparan)", accept = c(".png", ".svg", ".jpg", ".jpeg", ".webp")),
-           fileInput("p_header", "Gambar banner (foto lebar, mis. 1600x400 px)", accept = c(".jpg", ".jpeg", ".png", ".webp", ".svg")),
+           fileInput("p_header", "Gambar banner (foto lebar, mis. 1600 x 800 px)", accept = c(".jpg", ".jpeg", ".png", ".webp", ".svg")),
            actionButton("p_reset_gambar", "Pakai bawaan", class = "btn-outline-secondary mt-lg-4")),
-         helpText("Gambar disimpan di folder www/kustom (tidak ikut ke GitHub) dan langsung tampil.")),
+         helpText("Gambar disimpan pada folder www/kustom (tidak disertakan ke GitHub) dan langsung ditampilkan.")),
     card(card_header("Pemakaian Claude"), textOutput("p_biaya"), DT::DTOutput("p_log_ai", fill = FALSE)),
-    card(card_header("Jejak perubahan"), DT::DTOutput("p_jejak", fill = FALSE))
+    card(card_header("Jejak audit perubahan"), DT::DTOutput("p_jejak", fill = FALSE))
   ),
 
 )
@@ -345,7 +399,8 @@ server <- function(input, output, session) {
                actionButton("btn_lanjut", "Berikutnya \u2192", class = "btn-sm", disabled = if (i == nrow(BUTIR)) "disabled" else NULL)))),
         div(class = "keterangan", div(class = "label", paste("Keterangan kode", k)),
             div(class = "fs-5", b$pertanyaan),
-            tags$small(class = "text-muted", sprintf("Jenis jawaban: %s \u00B7 butir ke-%d dari %d", b$pilihan, i, nrow(BUTIR)))),
+            tags$small(class = "text-muted", sprintf("Jenis jawaban: %s \u00B7 butir ke-%d dari %d", b$pilihan, i, nrow(BUTIR))),
+            lencana_iso(b$sub_kode)),
         accordion(open = c("Kriteria jawaban", if (!is.null(rw)) "Catatan evaluator periode lalu"),
           accordion_panel("Kriteria jawaban",
             if (length(krit)) div(class = "gulir-x", tags$table(class = "kriteria", lapply(names(krit), function(h) tags$tr(tags$td(tags$b(h)), tags$td(krit[[h]])))))
@@ -376,7 +431,7 @@ server <- function(input, output, session) {
             actionButton("btn_ai_validasi", "Pra-penilaian Claude", class = "btn-outline-primary"),
             actionButton("btn_ai_narasi", "Draf narasi Claude", class = "btn-outline-primary"))
         ),
-        card(card_header("Validasi otomatis (langsung)"), uiOutput("ui_temuan_live"))
+        card(card_header("Validasi otomatis (seketika)"), uiOutput("ui_pdca"), uiOutput("ui_temuan_live"))
       ),
       uiOutput("ui_hasil_ai")
     )
@@ -400,7 +455,15 @@ server <- function(input, output, session) {
     b <- butir_aktif(); il <- isian_live()
     validasi_butir(b, rinci_aktif(), il, il$rinci, ambil_rw(b$kode), tahun())
   })
-  output$ui_temuan_live <- renderUI(kotak_temuan(temuan_live()))
+  output$ui_temuan_live <- renderUI(kotak_temuan(temuan_live()[temuan_live()$aturan != "V21", ]))
+  output$ui_pdca <- renderUI({
+    il <- isian_live(); pd <- tahap_pdca(urai_bukti(il$bukti)$judul, il$narasi)
+    div(class = "daftar-pdca", tags$b("Daftar periksa siklus PDCA"),
+        div(class = "pdca-baris", lapply(names(pd), function(t) span(
+          class = paste("pdca-chip", if (pd[[t]]) "ada" else "belum"), title = paste("Contoh dokumen:", TAHAP_PDCA[[t]]$contoh),
+          if (pd[[t]]) "\u2713" else "\u2715", " ", t, " \u00B7 ", TAHAP_PDCA[[t]]$label))),
+        tags$small(class = "text-muted", "Indikator kelengkapan berdasarkan judul bukti dan narasi; bukan prediktor nilai."))
+  })
 
   observeEvent(input$btn_pakai_lalu, {
     rw <- ambil_rw(butir_aktif()$kode); req(rw)
@@ -464,18 +527,22 @@ server <- function(input, output, session) {
     if (!isTRUE(h$ok)) return(card(card_header("Claude"), div(class = "alert alert-danger", h$pesan), helpText(biaya)))
     d <- h$data
     isi <- if (h$jenis == "validasi") {
-      warna <- c(rendah = "success", sedang = "warning", tinggi = "danger")[[d$tingkat_risiko]]
+      warna <- c(rendah = "success", sedang = "warning", tinggi = "danger")
       unsur <- as.data.frame(d$unsur_kriteria)
+      lambang <- c(terbukti = "\u2705 terbukti", tidak_terbukti = "\u274C tidak terbukti",
+                   tidak_dapat_diverifikasi = "\u2754 tidak dapat diverifikasi")
       tagList(
         p(tags$b("Jawaban yang dapat dipertahankan: "), tags$span(class = "badge bg-primary fs-6", d$jawaban_disarankan),
-          " Risiko diturunkan: ", tags$span(class = paste0("badge bg-", warna), d$tingkat_risiko)),
+          " Risiko penurunan: ", tags$span(class = paste0("badge bg-", warna[[d$tingkat_risiko]]), d$tingkat_risiko),
+          " Tingkat keyakinan: ", tags$span(class = "badge bg-secondary", d$tingkat_keyakinan %||% "-")),
         teks_pra(d$alasan),
         if (nrow(unsur)) div(class = "gulir-x", tags$table(class = "table table-sm mt-2",
-          tags$thead(tags$tr(tags$th("Unsur kriteria"), tags$th("Terbukti?"), tags$th("Keterangan"))),
+          tags$thead(tags$tr(tags$th("Unsur kriteria"), tags$th("Status bukti"), tags$th("Dasar bukti"), tags$th("Keterangan"))),
           tags$tbody(lapply(seq_len(nrow(unsur)), function(i) tags$tr(tags$td(unsur$unsur[i]),
-            tags$td(if (isTRUE(unsur$terbukti[i])) "\u2705" else "\u274C"), tags$td(unsur$keterangan[i])))))),
-        if (length(d$dokumen_perlu_ditambah)) tagList(tags$b("Dokumen yang perlu ditambahkan"), tags$ul(lapply(d$dokumen_perlu_ditambah, tags$li))),
-        tags$b("Perbaikan narasi"), teks_pra(d$perbaikan_narasi),
+            tags$td(lambang[[unsur$status[i] %||% "tidak_dapat_diverifikasi"]] %||% unsur$status[i]),
+            tags$td(unsur$dasar_bukti[i] %||% "-"), tags$td(unsur$keterangan[i])))))),
+        if (length(d$dokumen_perlu_ditambah)) tagList(tags$b("Dokumen yang perlu dilengkapi"), tags$ul(lapply(d$dokumen_perlu_ditambah, tags$li))),
+        tags$b("Rekomendasi perbaikan narasi"), teks_pra(d$perbaikan_narasi),
         if (length(h$pdf_dilewati)) div(class = "alert alert-warning mt-2", "PDF tidak dikirim karena melebihi batas ukuran: ", paste(basename(h$pdf_dilewati), collapse = ", "))
       )
     } else {
@@ -483,7 +550,7 @@ server <- function(input, output, session) {
               if (length(d$data_perlu_dilengkapi)) tagList(tags$b("Data yang perlu dilengkapi"), tags$ul(lapply(d$data_perlu_dilengkapi, tags$li))),
               actionButton("btn_salin_narasi", "Salin ke kolom narasi", class = "btn-sm btn-primary"))
     }
-    card(card_header(if (h$jenis == "validasi") "Pra-penilaian Claude (saran, bukan nilai resmi)" else "Draf narasi Claude"), isi, helpText(biaya))
+    card(card_header(if (h$jenis == "validasi") "Pra-penilaian Claude (rekomendasi, bukan nilai resmi)" else "Draf narasi Claude"), isi, helpText(biaya))
   })
 
   # ------------------------------------------------------------- Validasi
@@ -519,13 +586,13 @@ server <- function(input, output, session) {
   output$ui_analisis <- renderUI({
     rw <- riwayat()
     if (is.null(rw)) return(card(div(class = "alert alert-info",
-      "Belum ada riwayat penilaian. Impor file LKE yang memuat jawaban & catatan TP PTN/TPSK/TPI di menu Pengaturan.")))
+      "Data riwayat penilaian belum tersedia. Impor berkas LKE yang memuat jawaban dan catatan TP PTN/TPSK/TPI melalui menu Pengaturan.")))
     tagList(
-      card(card_header("Ringkasan"), uiOutput("an_ringkas")),
+      card(card_header("Ringkasan temuan"), uiOutput("an_ringkas")),
       kisi(desktop = c(5, 7), tablet = 1,
-        card(card_header("Alasan penurunan yang paling sering (dari catatan TPI/TPSK)"), DT::DTOutput("an_alasan", fill = FALSE)),
-        card(card_header("Penurunan per komponen"), DT::DTOutput("an_komponen", fill = FALSE))),
-      card(card_header("Butir yang diturunkan evaluator"), DT::DTOutput("an_butir", fill = FALSE))
+        card(card_header("Kategori alasan penurunan nilai (analisis isi catatan TPI/TPSK)"), DT::DTOutput("an_alasan", fill = FALSE)),
+        card(card_header("Proporsi butir yang diturunkan per komponen"), DT::DTOutput("an_komponen", fill = FALSE))),
+      card(card_header("Daftar butir yang diturunkan evaluator"), DT::DTOutput("an_butir", fill = FALSE))
     )
   })
   analisis <- reactive({
@@ -542,12 +609,13 @@ server <- function(input, output, session) {
     x <- analisis(); rw <- riwayat()
     s_unit <- hitung_skor(RB, stats::setNames(rw$jawaban_unit, rw$kode), FALSE)$ringkas
     s_tpi <- if (any(nzchar(rw$jawaban_tpi))) hitung_skor(RB, stats::setNames(rw$jawaban_tpi, rw$kode), FALSE)$ringkas else NULL
+    ci <- ci_wilson(sum(x$turun), nrow(x))
     tagList(
-      p(sprintf("%d dari %d butir (%.0f%%) diberi nilai lebih rendah oleh evaluator dibanding klaim unit.",
-                sum(x$turun), nrow(x), 100 * mean(x$turun))),
-      p(sprintf("Pengungkit: klaim unit %.2f%s.", s_unit$skor[3],
-                if (!is.null(s_tpi)) sprintf(" vs TPI %.2f (selisih %.2f poin)", s_tpi$skor[3], s_unit$skor[3] - s_tpi$skor[3]) else "")),
-      p("Pola ini menunjukkan masalah utama: jawaban diklaim lebih tinggi daripada yang dapat dibuktikan dokumen. Gunakan daftar alasan di bawah sebagai bahan pelatihan PIC.")
+      p(sprintf("Sebanyak %d dari %d butir (%.0f%%; IK 95%% Wilson %.0f-%.0f%%) memperoleh nilai evaluator yang lebih rendah daripada klaim unit.",
+                sum(x$turun), nrow(x), 100 * mean(x$turun), 100 * ci[1], 100 * ci[2])),
+      p(sprintf("Skor komponen Pengungkit: klaim unit %.2f%s.", s_unit$skor[3],
+                if (!is.null(s_tpi)) sprintf("; penilaian TPI %.2f (selisih %.2f poin)", s_tpi$skor[3], s_unit$skor[3] - s_tpi$skor[3]) else "")),
+      p("Temuan ini mengindikasikan kesenjangan sistematis antara klaim dan bukti yang dapat diverifikasi (overclaiming). Kategori alasan di bawah dapat dijadikan bahan pembinaan penanggung jawab butir; kategorisasi dilakukan dengan pencocokan kata kunci sehingga satu catatan dapat masuk lebih dari satu kategori.")
     )
   })
   output$an_alasan <- DT::renderDT({
@@ -580,14 +648,127 @@ server <- function(input, output, session) {
                   rownames = FALSE, filter = "top", escape = -1, options = list(pageLength = 10, scrollX = TRUE))
   })
 
-  # ------------------------------------------------------------- Keterangan kode
+  # ------------------------------------------------------------- Glosarium kode
   output$tbl_kode <- DT::renderDT({
     k <- RB[order(RB$baris_excel), ]
     zona <- ifelse(k$bagian == "Hasil", "Hasil", paste("Zona", k$komponen_no))
+    m <- PEMETAAN[match(k$sub_kode, PEMETAAN$sub_kode), ]
     DT::datatable(data.frame(Kode = k$kode, Zona = zona, Bagian = k$area, Komponen = k$komponen,
                              `Sub-komponen` = k$sub_nama, `Judul singkat` = ringkas_teks(k$pertanyaan),
-                             `Pertanyaan lengkap` = k$pertanyaan, `Jenis jawaban` = k$pilihan, check.names = FALSE),
+                             `Pertanyaan lengkap` = k$pertanyaan, `Jenis jawaban` = k$pilihan,
+                             `ISO 9001:2015` = gsub(";", ", ", m$iso9001 %||% ""), `ISO 37001:2016` = gsub(";", ", ", m$iso37001 %||% ""),
+                             check.names = FALSE),
                   rownames = FALSE, filter = "top", options = list(pageLength = 25, scrollX = TRUE))
+  })
+
+  # ------------------------------------------------------------- Analisis sensitivitas
+  skenario <- reactive(skenario_skor(RB, isian(), status(), riwayat()))
+  output$tbl_skenario <- DT::renderDT({
+    sk <- skenario()
+    DT::datatable(data.frame(Skenario = sk$skenario, Pengungkit = sprintf("%.2f", sk$pengungkit),
+                             `Hasil` = sprintf("%.2f", sk$hasil), Total = sprintf("%.2f", sk$pengungkit + sk$hasil), check.names = FALSE),
+                  rownames = FALSE, options = list(dom = "t", ordering = FALSE))
+  })
+  output$ui_skenario_catatan <- renderUI(tags$small(class = "text-muted",
+    "Skenario konservatif: butir merah dinilai pada tingkat terendah dan butir kuning diturunkan satu tingkat. ",
+    "Skenario rasio historis: skor klaim per komponen dikalikan rasio nilai TPI terhadap klaim pada penilaian terdahulu. ",
+    "Kedua skenario merupakan ilustrasi rentang risiko, bukan prediksi; keduanya belum divalidasi pada data penilaian independen."))
+
+  # ------------------------------------------------------------- Keselarasan ISO
+  output$tbl_iso <- DT::renderDT({
+    a <- kesiapan_iso(status(), RB, PEMETAAN)
+    if (input$i_standar != "semua") a <- a[a$standar == input$i_standar, ]
+    DT::datatable(data.frame(Standar = a$standar, Klausul = a$klausul, `Judul klausul` = a$nama, `Butir terkait` = a$butir,
+                             Hijau = a$hijau, Merah = a$merah, `Belum diisi` = a$belum, `Kesiapan (%)` = a$kesiapan, check.names = FALSE),
+                  rownames = FALSE, filter = "top", options = list(pageLength = 30, scrollX = TRUE)) |>
+      DT::formatStyle("Kesiapan (%)", background = DT::styleColorBar(c(0, 100), "#F9B03D"),
+                      backgroundSize = "98% 70%", backgroundRepeat = "no-repeat", backgroundPosition = "center")
+  })
+
+  # ------------------------------------------------------------- Evaluasi validator
+  output$ui_evaluasi <- renderUI({
+    rw <- riwayat()
+    if (is.null(rw)) return(card(div(class = "alert alert-info", "Evaluasi memerlukan data riwayat penilaian (menu Pengaturan).")))
+    ev <- evaluasi_validator(RB, isian_dari_riwayat(rw), rw, tahun())
+    if (is.null(ev)) return(card(div(class = "alert alert-info", "Data riwayat tidak memuat nilai TPI yang dapat dibandingkan.")))
+    ci_s <- ci_wilson(ev$tp, ev$tp + ev$fn); ci_p <- ci_wilson(ev$tp, ev$tp + ev$fp); ci_sp <- ci_wilson(ev$tn, ev$tn + ev$fp)
+    persen <- function(x) sprintf("%.0f%%", 100 * x)
+    tagList(
+      kisi(desktop = c(5, 7), tablet = 1,
+        card(card_header("Matriks konfusi (n = ", ev$n, " butir)"),
+          div(class = "gulir-x", tags$table(class = "table table-bordered text-center",
+            tags$thead(tags$tr(tags$th(""), tags$th("Diturunkan TPI"), tags$th("Tidak diturunkan"))),
+            tags$tbody(
+              tags$tr(tags$th("Ditandai validator"), tags$td(ev$tp), tags$td(ev$fp)),
+              tags$tr(tags$th("Tidak ditandai"), tags$td(ev$fn), tags$td(ev$tn))))),
+          tags$small(class = "text-muted", "Ditandai = status merah atau kuning pada isian periode terdahulu.")),
+        card(card_header("Ukuran kinerja diagnostik"),
+          tags$table(class = "table table-sm",
+            tags$tbody(
+              tags$tr(tags$td("Prevalensi penurunan"), tags$td(persen(ev$prevalensi))),
+              tags$tr(tags$td("Sensitivitas (recall)"), tags$td(sprintf("%s (IK 95%%: %s-%s)", persen(ev$sensitivitas), persen(ci_s[1]), persen(ci_s[2])))),
+              tags$tr(tags$td("Spesifisitas"), tags$td(sprintf("%s (IK 95%%: %s-%s)", persen(ev$spesifisitas), persen(ci_sp[1]), persen(ci_sp[2])))),
+              tags$tr(tags$td("Nilai prediktif positif"), tags$td(sprintf("%s (IK 95%%: %s-%s)", persen(ev$ppv), persen(ci_p[1]), persen(ci_p[2])))))))),
+      card(card_header("Interpretasi dan keterbatasan"), markdown(sprintf("
+1. **Kemampuan diskriminasi terbatas.** Nilai prediktif positif (%s) hanya sedikit melampaui prevalensi penurunan (%s); artinya, bendera validator menambah informasi yang terbatas dibandingkan asumsi bahwa setiap butir berisiko diturunkan.
+2. **Validator mengukur bentuk, bukan substansi.** Aturan memeriksa kelengkapan narasi, tautan, periode, dan konsistensi data, tetapi tidak menilai isi dokumen. Penilaian substansi memerlukan telaah dokumen oleh reviewer atau pra-penilaian Claude dengan PDF terlampir.
+3. **Evaluasi bersifat dalam-sampel.** Aturan dikembangkan dengan merujuk data yang sama; kinerja pada periode penilaian berikutnya berpotensi lebih rendah.
+4. **Kelengkapan siklus PDCA bukan prediktor nilai.** Telaah repositori bukti unit menunjukkan bahwa butir dengan tahap PDCA terlengkap pada nama dokumen justru seluruhnya diturunkan, kemungkinan karena kausalitas terbalik (dokumen revisi ditambahkan setelah penurunan). Indikator PDCA karenanya diposisikan sebagai daftar periksa, bukan skor.
+", persen(ev$ppv), persen(ev$prevalensi))))
+    )
+  })
+
+  # ------------------------------------------------------------- Tindakan korektif
+  capa_pemicu <- reactiveVal(0)
+  capa_id <- reactiveVal(NA)
+  capa <- reactive({ capa_pemicu(); baca_capa(con, tahun()) })
+  isi_form_capa <- function(d = NULL) {
+    updateSelectizeInput(session, "c_kode", selected = d$kode %||% "")
+    updateSelectInput(session, "c_sumber", selected = d$sumber %||% SUMBER_CAPA[1])
+    peta <- c(c_temuan = "temuan", c_akar = "akar_masalah", c_tindakan = "tindakan", c_bukti = "bukti_penutupan")
+    for (id in names(peta)) updateTextAreaInput(session, id, value = d[[peta[[id]]]] %||% "")
+    updateTextInput(session, "c_pic", value = d$pic %||% "")
+    updateDateInput(session, "c_tenggat", value = if (nzchar(d$tenggat %||% "")) as.Date(d$tenggat) else Sys.Date() + 30)
+    updateSelectInput(session, "c_status", selected = d$status %||% "Terbuka")
+  }
+  observeEvent(input$c_isi_temuan, {
+    k <- input$c_kode; req(nzchar(k))
+    t <- temuan(); t <- t[t$kode == k & t$tingkat %in% c("merah", "kuning"), ]
+    rw <- ambil_rw(k)
+    teks <- c(if (nrow(t)) sprintf("[%s] %s", t$aturan, t$pesan),
+              if (!is.null(rw) && nzchar(rw$catatan_tpi)) paste("Catatan TPI:", rw$catatan_tpi))
+    if (!length(teks)) { showNotification("Tidak terdapat temuan merah/kuning maupun catatan TPI untuk butir ini.", type = "message"); return() }
+    updateTextAreaInput(session, "c_temuan", value = paste(teks, collapse = "\n"))
+  })
+  observeEvent(input$c_simpan, {
+    d <- list(kode = input$c_kode, sumber = input$c_sumber, temuan = input$c_temuan, akar_masalah = input$c_akar,
+              tindakan = input$c_tindakan, pic = input$c_pic, tenggat = format(input$c_tenggat), status = input$c_status,
+              bukti_penutupan = input$c_bukti)
+    masalah <- periksa_capa(d)
+    if (length(masalah)) { output$c_pesan <- renderUI(div(class = "alert alert-warning mt-2", tags$ul(lapply(masalah, tags$li)))); return() }
+    simpan_capa(con, d, tahun(), id = capa_id())
+    output$c_pesan <- renderUI(div(class = "alert alert-success mt-2", "Tindakan korektif tersimpan."))
+    capa_pemicu(capa_pemicu() + 1)
+  })
+  observeEvent(input$c_baru, { capa_id(NA); isi_form_capa(NULL); output$c_pesan <- renderUI(NULL) })
+  observeEvent(input$tbl_capa_rows_selected, {
+    d <- capa()[input$tbl_capa_rows_selected, ]
+    capa_id(d$id); isi_form_capa(as.list(d))
+    output$c_pesan <- renderUI(div(class = "alert alert-secondary mt-2", sprintf("Menyunting tindakan korektif #%d.", d$id)))
+  })
+  output$c_ringkas <- renderUI({
+    d <- capa(); if (!nrow(d)) return(helpText("Register masih kosong."))
+    lewat <- sum(d$status %in% c("Terbuka", "Dalam proses") & as.Date(d$tenggat) < Sys.Date(), na.rm = TRUE)
+    p(sprintf("%d tindakan: %s.", nrow(d), paste(sprintf("%s %d", names(table(d$status)), as.integer(table(d$status))), collapse = ", ")),
+      if (lewat) tags$span(class = "badge bg-danger ms-1", sprintf("%d melewati tenggat", lewat)))
+  })
+  output$tbl_capa <- DT::renderDT({
+    d <- capa()
+    DT::datatable(data.frame(No = d$id, Kode = d$kode, Temuan = substr(d$temuan, 1, 120), PIC = d$pic, Tenggat = d$tenggat,
+                             Status = d$status, check.names = FALSE),
+                  rownames = FALSE, selection = "single", options = list(pageLength = 10, scrollX = TRUE)) |>
+      DT::formatStyle("Status", fontWeight = "bold",
+                      color = DT::styleEqual(STATUS_CAPA, c("#C62828", "#B26A00", "#1F6FB2", "#2E8B57")))
   })
 
   # ------------------------------------------------------------- Draf dokumen
@@ -629,10 +810,11 @@ server <- function(input, output, session) {
   # ------------------------------------------------------------- Ekspor
   output$e_excel <- downloadHandler(
     filename = function() sprintf("Isian_LKE_ZI_%d_%s.xlsx", tahun(), format(Sys.Date(), "%Y%m%d")),
-    content = function(file) ekspor_lembar_isian(RB, isian(), status(), temuan(), skor(), file, tahun()))
+    content = function(file) ekspor_lembar_isian(RB, isian(), status(), temuan(), skor(), file, tahun(), capa = capa()))
   output$e_docx <- downloadHandler(
     filename = function() sprintf("Laporan_Validasi_LKE_%d_%s.docx", tahun(), format(Sys.Date(), "%Y%m%d")),
-    content = function(file) laporan_validasi_docx(RB, isian(), status(), temuan(), skor(), file, tahun()))
+    content = function(file) laporan_validasi_docx(RB, isian(), status(), temuan(), skor(), file, tahun(),
+                                                     capa = capa(), skenario = skenario(), riwayat = riwayat()))
 
   # ------------------------------------------------------------- Pengaturan
   observeEvent(input$p_effort, KONFIG$effort <<- input$p_effort, ignoreInit = TRUE)

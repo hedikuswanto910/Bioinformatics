@@ -1,0 +1,45 @@
+sub_kode,iso9001,iso37001,catatan
+P1.i,5.3,5.3.2,Penetapan peran dan wewenang tim pembangunan ZI
+P1.ii,6.2,6.2,Sasaran dan perencanaan pencapaiannya
+P1.iii,9.1;9.3,9.1;9.3,Pemantauan dan tinjauan oleh pimpinan
+P1.iv,5.1;7.3,5.1;7.3,Kepemimpinan dan kepedulian personel
+P2.i,4.4;7.5;8.1,7.5;8.1,Proses terdokumentasi dan pengendalian operasional
+P2.ii,7.1.3,,Infrastruktur teknologi informasi
+P2.iii,7.4,7.4,Komunikasi internal dan eksternal
+P3.i,7.1.2,7.1,Penyediaan sumber daya manusia
+P3.ii,7.2,7.2.2,Kompetensi dan proses kepegawaian
+P3.iii,7.2,7.2;7.3,Kompetensi dan pelatihan
+P3.iv,7.2;9.1,7.2.2,Kinerja personel
+P3.v,,5.2;7.2.2,Kebijakan dan penegakan disiplin
+P3.vi,7.5,7.5,Informasi terdokumentasi kepegawaian
+P4.i,5.1;6.2,5.1,Kepemimpinan dalam perencanaan kinerja
+P4.ii,9.1;9.3,9.1,Pemantauan dan evaluasi kinerja
+P5.i,,8.7,Hadiah jamuan dan manfaat serupa
+P5.ii,6.1;9.2,4.5;9.2,Penilaian risiko dan audit internal
+P5.iii,9.1.2;10.2,8.9,Umpan balik dan tindakan korektif
+P5.iv,,8.9;8.10,Pelaporan dugaan dan investigasi
+P5.v,6.1,4.5;5.2,Pengendalian risiko benturan kepentingan
+P6.i,8.2;7.5,,Persyaratan layanan terdokumentasi
+P6.ii,7.2;7.3;8.5,,Kompetensi dan penyediaan layanan
+P6.iii,9.1.2;10.2,8.9,Penanganan keluhan
+P6.iv,9.1.2,,Kepuasan pengguna layanan
+P6.v,7.1.3,,Infrastruktur layanan berbasis TI
+R1.i,10.3,10.2,Peningkatan berkelanjutan
+R1.ii,5.1,5.1,Komitmen pimpinan
+R1.iii,7.3,7.3,Budaya dan kepedulian
+R2.i,4.4,,Pendekatan proses
+R2.ii,7.1.3,,Infrastruktur terintegrasi
+R2.iii,7.1.3;10.3,,Peningkatan melalui transformasi digital
+R3.i,9.1,,Pengukuran kinerja individu
+R3.ii,7.2,7.2.2,Evaluasi kompetensi
+R3.iii,,7.2.2;8.10,Penanganan pelanggaran
+R4.i,9.1.3,9.1,Analisis dan evaluasi capaian
+R4.ii,,,Tidak ada padanan langsung
+R4.iii,6.2,6.2,Keselarasan sasaran berjenjang
+R5.i,6.1;8.1,8.3;8.4,Pengendalian finansial dan non-finansial
+R5.ii,9.1.2;10.2,8.9,Penanganan pengaduan
+R5.iii,,7.2.2,Pernyataan kepatuhan personel
+R6.i,10.3,,Inovasi dan peningkatan layanan
+R6.ii,9.1.2;10.2,,Penanganan keluhan dan konsultasi
+H1,9.1.3,9.1,Hasil pengukuran eksternal
+H2,9.1.2,,Persepsi kualitas layanan

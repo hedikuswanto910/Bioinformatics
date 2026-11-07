@@ -76,66 +76,82 @@ validasi_butir <- function(b, rinci, isi, isi_rinci = character(0), rw = NULL, t
 
   # --- 1. Jawaban ------------------------------------------------------------
   if (b$pilihan %in% names(PETA_NILAI) && !(jawaban %in% pilihan_jawaban(b$pilihan))) {
-    tambah("merah", "V01", sprintf("Jawaban belum dipilih (pilihan: %s).", b$pilihan))
+    tambah("merah", "V01", sprintf("Jawaban belum ditetapkan (pilihan yang tersedia: %s).", b$pilihan))
   }
   if (b$pilihan == "Nilai (0-4)") {
     v <- ke_angka(jawaban)
-    if (is.na(v)) tambah("merah", "V01", "Nilai survei (0-4) belum diisi.")
-    else if (v < 0 || v > 4) tambah("merah", "V02", "Nilai survei harus di antara 0 dan 4.")
+    if (is.na(v)) tambah("merah", "V01", "Nilai hasil survei eksternal (skala 0-4) belum diisikan.")
+    else if (v < 0 || v > 4) tambah("merah", "V02", "Nilai hasil survei berada di luar rentang skala 0-4.")
   }
 
   # --- 2. Rincian jumlah & persentase -----------------------------------------
   if (nrow(rinci) > 0) {
     v <- vapply(rinci$kode, function(k) ke_angka(if (k %in% names(isi_rinci)) isi_rinci[[k]] else ""), numeric(1))
     kosong <- rinci$pertanyaan[is.na(v)]
-    if (length(kosong)) tambah("merah", "V02", paste0("Rincian belum diisi: ", paste(kosong, collapse = "; "), "."))
-    if (any(v < 0, na.rm = TRUE)) tambah("merah", "V02", "Rincian tidak boleh bernilai negatif.")
+    if (length(kosong)) tambah("merah", "V02", paste0("Komponen rincian berikut belum diisikan: ", paste(kosong, collapse = "; "), "."))
+    if (any(v < 0, na.rm = TRUE)) tambah("merah", "V02", "Komponen rincian tidak dapat bernilai negatif.")
     if (!any(is.na(v))) {
       h <- hitung_persen(b$rumus_persen %||% "rasio", v)
       if (nzchar(h$pesan) && is.na(h$nilai)) {
-        tambah("merah", "V03", paste0(h$pesan, ". Tim ZI perlu memutuskan cara pengisian dan menuliskan alasannya di narasi."))
+        tambah("merah", "V03", paste0(h$pesan, ". Tim ZI perlu menetapkan perlakuan atas kondisi ini dan mendokumentasikan dasar pertimbangannya pada narasi."))
       }
       if ((b$rumus_persen %||% "") == "rasio" && v[length(v)] > v[1] && v[1] > 0) {
-        tambah("kuning", "V04", sprintf("'%s' (%s) lebih besar dari '%s' (%s). Nilai dipotong 100%%; periksa kembali data.",
+        tambah("kuning", "V04", sprintf("Nilai '%s' (%s) melampaui '%s' (%s); persentase dibatasi pada 100%%. Konsistensi data sumber perlu diverifikasi.",
                                         rinci$pertanyaan[length(v)], v[length(v)], rinci$pertanyaan[1], v[1]))
       }
       if (nrow(rinci) >= 4 && grepl("harus melaporkan", tolower(rinci$pertanyaan[1]))) {
         tengah <- v[2:(length(v) - 1)]
         if (sum(tengah) != v[1]) {
-          tambah("merah", "V05", sprintf("Jumlah wajib lapor (%s) tidak sama dengan jumlah rinciannya (%s).", v[1], sum(tengah)))
+          tambah("merah", "V05", sprintf("Jumlah wajib lapor (%s) tidak sama dengan agregat rinciannya (%s); terdapat inkonsistensi internal data.", v[1], sum(tengah)))
         }
       }
       if ((b$rumus_persen %||% "") == "penurunan" && length(v) >= 3 && v[3] > v[2]) {
-        tambah("kuning", "V06", "Jumlah pelanggaran yang diberi sanksi melebihi jumlah pelanggaran tahun ini.")
+        tambah("kuning", "V06", "Jumlah pelanggaran yang dikenai sanksi melampaui jumlah pelanggaran pada tahun berjalan; data perlu diverifikasi.")
       }
       if (grepl("pengaduan", tolower(b$pertanyaan)) && length(v) == 3 && v[2] + v[3] > v[1]) {
-        tambah("kuning", "V06", "Pengaduan yang diproses + selesai melebihi jumlah pengaduan yang harus ditindaklanjuti.")
+        tambah("kuning", "V06", "Jumlah pengaduan dalam proses dan selesai melampaui jumlah pengaduan yang wajib ditindaklanjuti; data perlu diverifikasi.")
       }
     }
   }
 
   # --- 3. Narasi ---------------------------------------------------------------
   if (!nzchar(narasi)) {
-    tambah("merah", "V10", "Narasi/keterangan kosong. Evaluator berulang kali meminta narasi yang menjelaskan bukti.")
+    tambah("merah", "V10", "Narasi belum disusun. Catatan evaluator terdahulu secara konsisten mensyaratkan uraian yang menautkan klaim dengan bukti dukung.")
   } else if (nchar(narasi) < ATURAN$narasi_min_karakter) {
-    tambah("kuning", "V10", sprintf("Narasi terlalu singkat (%d karakter, minimal %d). Jelaskan apa, kapan, siapa, hasilnya, dan rujuk nomor bukti.",
+    tambah("kuning", "V10", sprintf("Narasi belum memadai (%d karakter; ambang minimal %d). Uraikan kegiatan, dasar penetapan, waktu dan frekuensi, pihak yang terlibat, hasil, serta rujukan nomor bukti.",
                                     nchar(narasi), ATURAN$narasi_min_karakter))
   }
 
   # --- 4. Bukti ----------------------------------------------------------------
   if (nrow(bukti) == 0) {
-    tambah("merah", "V11", "Belum ada dokumen bukti dukung.")
+    tambah("merah", "V11", "Belum tersedia dokumen bukti dukung.")
   } else {
     tanpa_link <- bukti$judul[!grepl("^https?://", bukti$tautan)]
-    if (length(tanpa_link)) tambah("merah", "V12", paste0("Tautan kosong/tidak valid untuk: ", paste(utils::head(tanpa_link, 5), collapse = "; "), "."))
+    if (length(tanpa_link)) tambah("merah", "V12", paste0("Tautan bukti kosong atau tidak valid pada: ", paste(utils::head(tanpa_link, 5), collapse = "; "), "."))
     pendek <- bukti$judul[nchar(bukti$judul) < ATURAN$judul_bukti_min]
-    if (length(pendek)) tambah("kuning", "V12", paste0("Judul dokumen terlalu umum: ", paste(pendek, collapse = "; "), ". Gunakan format 'TAHUN_JENIS DOKUMEN_ISI'."))
-    if (anyDuplicated(bukti$tautan[nzchar(bukti$tautan)])) tambah("info", "V14", "Ada tautan yang sama dipakai lebih dari sekali.")
+    if (length(pendek)) tambah("kuning", "V12", paste0("Judul dokumen kurang deskriptif: ", paste(pendek, collapse = "; "), ". Gunakan konvensi TAHUN_KODE_JENIS_URAIAN."))
+    if (anyDuplicated(bukti$tautan[nzchar(bukti$tautan)])) tambah("info", "V14", "Terdapat tautan yang dirujuk lebih dari satu kali.")
     th <- as.integer(unlist(regmatches(bukti$judul, gregexpr("20[0-9]{2}", bukti$judul))))
     if (length(th) == 0) {
-      tambah("kuning", "V13", "Tidak ada judul bukti yang mencantumkan tahun. Evaluator menilai periode berjalan; cantumkan tahun dokumen.")
+      tambah("kuning", "V13", "Tidak satu pun judul bukti mencantumkan tahun. Penilaian berfokus pada periode berjalan sehingga tahun dokumen perlu dinyatakan secara eksplisit.")
     } else if (!any(th %in% c(tahun, tahun - 1))) {
-      tambah("kuning", "V13", sprintf("Semua bukti bertahun %s; belum ada bukti tahun %d/%d.", paste(sort(unique(th)), collapse = ", "), tahun - 1, tahun))
+      tambah("kuning", "V13", sprintf("Seluruh bukti bertahun %s; belum terdapat bukti periode %d/%d.", paste(sort(unique(th)), collapse = ", "), tahun - 1, tahun))
+    }
+    # Kendali identifikasi dokumen (ISO 9001:2015 klausul 7.5.2)
+    kn <- cek_kendali_nama(bukti$judul, b$kode)
+    if (length(kn$sufiks)) tambah("kuning", "V15", paste0("Identifikasi dokumen belum terkendali (sufiks unduhan/salinan): ",
+                                   paste(utils::head(kn$sufiks, 4), collapse = "; "), ". Gunakan satu versi final dengan nama baku."))
+    if (isTRUE(kn$tanpa_kode)) tambah("info", "V16", sprintf("Disarankan mencantumkan kode butir pada nama dokumen, misalnya %d_%s_SK_Uraian, agar keterlacakan bukti terjaga.", tahun, b$kode))
+    lama <- bukti$judul[vapply(regmatches(bukti$judul, gregexpr("20[0-9]{2}", bukti$judul)),
+                               function(y) length(y) > 0 && max(as.integer(y)) <= tahun - 3, logical(1))]
+    if (length(lama)) tambah("info", "V17", paste0("Dokumen historis (tiga tahun atau lebih sebelum periode penilaian): ",
+                                                   paste(utils::head(lama, 3), collapse = "; "), ". Pastikan terdapat padanan periode berjalan."))
+    # Daftar periksa siklus PDCA (bukan prediktor nilai)
+    pd <- tahap_pdca(bukti$judul, narasi)
+    if (!all(pd)) {
+      kurang <- vapply(names(pd)[!pd], function(t) TAHAP_PDCA[[t]]$label, character(1))
+      tambah("info", "V21", paste0("Daftar periksa siklus PDCA: tahap ", paste(sprintf("%s (%s)", names(pd)[!pd], tolower(kurang)), collapse = ", "),
+                                   " belum tampak pada judul bukti maupun narasi."))
     }
   }
 
@@ -147,7 +163,7 @@ validasi_butir <- function(b, rinci, isi, isi_rinci = character(0), rw = NULL, t
     korpus <- tolower(paste(narasi, paste(bukti$judul, collapse = " ")))
     for (k in konsep_dalam_kriteria(krit)) {
       if (!any(vapply(KONSEP[[k]]$bukti, function(s) grepl(s, korpus, fixed = TRUE), logical(1)))) {
-        tambah("kuning", "V20", sprintf("Jawaban '%s' mensyaratkan unsur \"%s\", tetapi narasi dan judul bukti tidak menunjukkannya.",
+        tambah("kuning", "V20", sprintf("Kriteria jawaban '%s' mensyaratkan unsur \"%s\", namun unsur tersebut belum tercermin pada narasi maupun judul bukti.",
                                          jawaban, KONSEP[[k]]$label))
       }
     }
@@ -162,12 +178,12 @@ validasi_butir <- function(b, rinci, isi, isi_rinci = character(0), rw = NULL, t
       catatan <- switch(siapa, TPI = rw$catatan_tpi, TPSK = rw$catatan_tpsk, rw$catatan_tp)
       n_unit <- .urut_nilai(b$pilihan, rw$jawaban_unit); n_ev <- .urut_nilai(b$pilihan, j_ev)
       if (!is.na(n_unit) && !is.na(n_ev) && n_ev < n_unit) {
-        tambah("info", "V30", sprintf("Penilaian lalu: unit menjawab %s, %s memberi %s. Catatan: %s",
+        tambah("info", "V30", sprintf("Penilaian terdahulu: klaim unit %s, nilai %s %s. Catatan evaluator: %s",
                                       rw$jawaban_unit, siapa, j_ev, substr(catatan %||% "-", 1, 400)))
         n_kini <- .urut_nilai(b$pilihan, jawaban)
         sama <- nzchar(narasi) && identical(gsub("\\s+", " ", narasi), gsub("\\s+", " ", trimws(rw$narasi %||% "")))
         if (!is.na(n_kini) && n_kini > n_ev && sama) {
-          tambah("kuning", "V31", sprintf("Masih mengklaim %s dengan narasi yang sama persis seperti penilaian lalu (dinilai %s oleh %s). Tambahkan bukti yang menutup catatan evaluator.",
+          tambah("kuning", "V31", sprintf("Klaim %s diajukan kembali dengan narasi yang identik dengan penilaian terdahulu (dinilai %s oleh %s). Diperlukan bukti tambahan yang secara langsung menjawab catatan evaluator.",
                                           jawaban, j_ev, siapa))
         }
       }
