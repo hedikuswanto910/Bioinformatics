@@ -102,6 +102,7 @@ ui <- page_navbar(
   window_title = paste("LKE ZI -", KONFIG$unit),
   header = tagList(tags$head(tags$style(HTML(CSS_APLIKASI)), tags$style(HTML(CSS_HEADER)),
                              tags$style(HTML(CSS_RESPONSIF)),
+                             tags$style(HTML(sprintf(":root { --jarak-ribbon: %s; }", KONFIG$jarak_menu))),
                              tags$script(HTML(JS_APLIKASI)), tags$script(HTML(JS_HEADER)), tags$script(HTML(JS_RESPONSIF))),
                    banner_ui()),
   footer = kaki_ui(),

@@ -13,3 +13,5 @@ ZI_UNIT=Fakultas Kedokteran Universitas Hasanuddin
 # ZI_MENU_PENGATURAN=tidak
 # Teks nama unit di atas banner: otomatis (hanya pada banner bawaan) / ya / tidak
 # ZI_TEKS_BANNER=otomatis
+# Jarak antarmenu pada ribbon merah (desktop), mis. 0.25cm atau 0.5cm
+# ZI_JARAK_MENU=0.25cm

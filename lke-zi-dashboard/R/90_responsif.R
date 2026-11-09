@@ -210,7 +210,8 @@ body.banner-ringkas #gambar-banner { height: 4.5rem; max-height: 4.5rem; }
   nav.navbar .navbar-header { width: auto; }
   nav.navbar .navbar-toggle { display: none !important; }
   nav.navbar .navbar-collapse { display: flex !important; width: auto; flex: 1 1 auto; min-width: 0; }
-  nav.navbar .navbar-nav { flex-direction: row; flex-wrap: nowrap; padding-bottom: 0; overflow-x: auto; scrollbar-width: none; }
+  nav.navbar .navbar-nav { flex-direction: row; flex-wrap: nowrap; padding-bottom: 0; overflow-x: auto; scrollbar-width: none;
+                          gap: var(--jarak-ribbon, 0.25cm); } /* jarak antarmenu: ZI_JARAK_MENU */
   nav.navbar .navbar-nav::-webkit-scrollbar { display: none; }
   nav.navbar .nav-link { padding: 1.15rem .7rem !important; white-space: nowrap; font-size: .9rem; }
   nav.navbar .dropdown-menu { position: absolute; margin: 0; border-radius: 0 0 10px 10px; box-shadow: 0 10px 24px rgba(78,7,0,.35); }

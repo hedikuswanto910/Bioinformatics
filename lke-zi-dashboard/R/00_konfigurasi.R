@@ -51,7 +51,12 @@ KONFIG <- list(
   # Banner: www/kustom/header.jpg (bila tidak ada: www/gambar/header_bawaan.jpg)
   # Teks nama unit di atas banner: otomatis (tampil hanya pada banner bawaan),
   # ya (selalu tampil), atau tidak (tidak pernah tampil).
-  teks_banner = Sys.getenv("ZI_TEKS_BANNER", "otomatis")
+  teks_banner = Sys.getenv("ZI_TEKS_BANNER", "otomatis"),
+
+  # --- Jarak antarmenu pada ribbon merah (tampilan desktop) -----------------
+  # Satuan CSS apa pun: 0.25cm, 0.5cm, 8px, 0.5rem. Ubah di sini atau lewat
+  # ZI_JARAK_MENU di .Renviron.
+  jarak_menu = Sys.getenv("ZI_JARAK_MENU", "0.25cm")
 )
 
 # Ambang aturan validasi berbasis aturan (bisa disesuaikan Tim ZI)
