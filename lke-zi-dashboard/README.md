@@ -148,7 +148,7 @@ Data internal disimpan di `data/lokal/` dan tidak disertakan ke GitHub.
 | Tahun penilaian | `ZI_TAHUN` di `.Renviron`, lalu mulai ulang R |
 | Tingkat penalaran Claude | `ZI_CLAUDE_EFFORT` di `.Renviron` (`low`, `medium`, `high`, `xhigh`) |
 | Impor isian dan riwayat | `scripts/siapkan_data.R` (perintah di atas) |
-| Logo dan banner | Salin berkas ke `www/kustom/logo.png` dan `www/kustom/header.jpg`; nama berkas harus `logo.*` dan `header.*` |
+| Logo dan banner | Format JPG, JPEG, atau PNG. Salin berkas ke `www/kustom/logo.png` dan `www/kustom/header.jpg` (nama harus `logo.*` dan `header.*`). Bila tidak ada, dipakai `www/gambar/logo_bawaan.png` dan `www/gambar/header_bawaan.jpg`. Teks nama unit di atas banner diatur dengan `ZI_TEKS_BANNER` (`otomatis`, `ya`, `tidak`) |
 | Log biaya Claude dan jejak audit | Baca tabel `log_ai` dan `jejak` di `data/lokal/zi.sqlite`, misalnya `DBI::dbReadTable(DBI::dbConnect(RSQLite::SQLite(), "data/lokal/zi.sqlite"), "log_ai")` |
 
 Untuk menampilkan kembali menu tersebut, misalnya hanya pada komputer Admin, tambahkan `ZI_MENU_PENGATURAN=ya` di `.Renviron`.

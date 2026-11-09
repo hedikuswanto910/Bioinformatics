@@ -172,25 +172,52 @@ butir_html <- function(kode, pertanyaan, n = 55) {
 #   -> banner/gambar utama di bawahnya.
 # Banner tampil penuh di Beranda dan menjadi pita tipis di menu lain agar
 # tidak menghabiskan layar saat mengisi LKE.
-# Logo & banner: taruh file logo.* / header.* di folder www/kustom/ (tidak
-# ikut ke GitHub), atau lewat menu Pengaturan bila ZI_MENU_PENGATURAN=ya.
+# Logo & banner (JPG/JPEG/PNG): taruh logo.* / header.* di folder www/kustom/
+# (tidak ikut ke GitHub), ganti berkas bawaan di www/gambar/, atau lewat menu
+# Pengaturan bila ZI_MENU_PENGATURAN=ya.
 # =============================================================================
 
-gambar_kustom <- function(jenis) {
-  f <- list.files("www/kustom", pattern = paste0("^", jenis, "\\.(png|jpe?g|svg|webp)$"), ignore.case = TRUE)
-  if (length(f)) file.path("www/kustom", f[1]) else NA_character_
+# Format gambar yang dibaca: JPG, JPEG, dan PNG (huruf besar/kecil sama saja).
+EKSTENSI_GAMBAR <- c("jpg", "jpeg", "png")
+
+# Cari berkas <nama>.jpg/.jpeg/.png di sebuah folder; NA bila tidak ada.
+# Bila ada lebih dari satu (mis. header.jpg dan header.png), dipakai yang
+# paling baru diubah.
+cari_gambar <- function(folder, nama) {
+  pola <- paste0("^", nama, "\\.(", paste(EKSTENSI_GAMBAR, collapse = "|"), ")$")
+  f <- list.files(folder, pattern = pola, ignore.case = TRUE, full.names = TRUE)
+  if (!length(f)) return(NA_character_)
+  f[which.max(file.mtime(f))]
 }
 
+# Urutan pencarian:
+#   1. www/kustom/logo.*  atau www/kustom/header.*          (gambar milik unit)
+#   2. www/gambar/logo_bawaan.* atau www/gambar/header_bawaan.* (gambar bawaan)
+gambar_kustom <- function(jenis) cari_gambar("www/kustom", jenis)
+gambar_bawaan <- function(jenis) cari_gambar("www/gambar", paste0(jenis, "_bawaan"))
+
+# URL gambar untuk peramban; ?v=<waktu ubah> memaksa peramban memuat ulang
+# gambar setiap kali berkasnya diganti.
 gambar_tampilan <- function(jenis = c("logo", "header")) {
   jenis <- match.arg(jenis)
   f <- gambar_kustom(jenis)
-  if (!is.na(f)) paste0("kustom/", basename(f), "?v=", as.integer(file.mtime(f)))
-  else paste0("gambar/", jenis, "_bawaan.svg")
+  if (is.na(f)) f <- gambar_bawaan(jenis)
+  if (is.na(f)) return("")
+  paste0(sub("^www/", "", f), "?v=", as.integer(file.mtime(f)))
+}
+
+# Teks nama unit di atas banner: tampil pada gambar bawaan, disembunyikan pada
+# gambar milik unit (yang biasanya sudah memuat teks sendiri). Atur lewat
+# ZI_TEKS_BANNER = otomatis | ya | tidak.
+teks_banner_tampil <- function() {
+  pilihan <- tolower(KONFIG$teks_banner %||% "otomatis")
+  if (pilihan %in% c("ya", "true", "1")) return(TRUE)
+  if (pilihan %in% c("tidak", "false", "0")) return(FALSE)
+  is.na(gambar_kustom("header"))
 }
 
 banner_ui <- function() {
-  bawaan <- is.na(gambar_kustom("header"))
-  htmltools::div(id = "banner-situs", class = if (bawaan) "pakai-bawaan",
+  htmltools::div(id = "banner-situs", class = if (teks_banner_tampil()) "pakai-bawaan",
     htmltools::span(id = "sumber-logo", `data-src` = gambar_tampilan("logo"), style = "display:none"),
     htmltools::div(class = "bingkai",
       htmltools::img(src = gambar_tampilan("header"), id = "gambar-banner", alt = "Banner"),
@@ -263,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (banner && nav) nav.after(banner);
   var brand = nav ? nav.querySelector('.navbar-brand') : null;
   if (brand) { var img = document.createElement('img'); img.className = 'logo-kecil'; img.alt = 'Logo';
-               var sl = document.getElementById('sumber-logo'); img.src = sl ? sl.dataset.src : 'gambar/logo_bawaan.svg'; brand.prepend(img); }
+               var sl = document.getElementById('sumber-logo'); img.src = sl ? sl.dataset.src : ''; brand.prepend(img); }
   var atur = function() {
     var aktif = document.querySelector('#nav .nav-link.active:not(.dropdown-toggle), #nav .dropdown-item.active');
     document.body.classList.toggle('banner-ringkas', !!aktif && aktif.dataset.value !== 'Beranda');
@@ -280,7 +307,7 @@ Shiny.addCustomMessageHandler('ganti_gambar', function(m) {
     document.querySelectorAll('nav.navbar .logo-kecil').forEach(function(i) { i.src = m.url; });
   } else {
     document.getElementById('gambar-banner').src = m.url;
-    document.getElementById('banner-situs').classList.toggle('pakai-bawaan', m.url.indexOf('gambar/') === 0);
+    document.getElementById('banner-situs').classList.toggle('pakai-bawaan', !!m.teks);
   }
 });
 "

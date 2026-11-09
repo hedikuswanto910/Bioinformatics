@@ -11,3 +11,5 @@ ZI_UNIT=Fakultas Kedokteran Universitas Hasanuddin
 # ZI_CLAUDE_EFFORT=medium
 # Menu Pengaturan disembunyikan secara bawaan. Isi "ya" hanya di komputer Admin:
 # ZI_MENU_PENGATURAN=tidak
+# Teks nama unit di atas banner: otomatis (hanya pada banner bawaan) / ya / tidak
+# ZI_TEKS_BANNER=otomatis

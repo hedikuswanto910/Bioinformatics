@@ -269,8 +269,8 @@ Konvensi penamaan dokumen bukti yang dianjurkan: **TAHUN_KODE_JENIS_URAIAN**, mi
     ),
     card(card_header("Tampilan header (logo dan gambar banner)"),
          kisi(desktop = c(5, 5, 2), tablet = c(1, 1),
-           fileInput("p_logo", "Logo (PNG/SVG, latar transparan)", accept = c(".png", ".svg", ".jpg", ".jpeg", ".webp")),
-           fileInput("p_header", "Gambar banner (foto lebar, mis. 1600 x 800 px)", accept = c(".jpg", ".jpeg", ".png", ".webp", ".svg")),
+           fileInput("p_logo", "Logo (PNG/JPG; PNG untuk latar transparan)", accept = c(".png", ".jpg", ".jpeg")),
+           fileInput("p_header", "Gambar banner JPG/PNG (foto lebar, mis. 1600 x 500 px)", accept = c(".jpg", ".jpeg", ".png")),
            actionButton("p_reset_gambar", "Pakai bawaan", class = "btn-outline-secondary mt-lg-4")),
          helpText("Gambar disimpan pada folder www/kustom (tidak disertakan ke GitHub) dan langsung ditampilkan.")),
     card(card_header("Pemakaian Claude"), textOutput("p_biaya"), DT::DTOutput("p_log_ai", fill = FALSE)),
@@ -851,18 +851,21 @@ server <- function(input, output, session) {
   })
   simpan_gambar <- function(berkas, jenis) {
     req(berkas)
+    ext <- tolower(tools::file_ext(berkas$name))
+    if (!ext %in% EKSTENSI_GAMBAR) {
+      showNotification("Format gambar harus JPG, JPEG, atau PNG.", type = "error"); return()
+    }
     dir.create("www/kustom", showWarnings = FALSE, recursive = TRUE)
     unlink(list.files("www/kustom", paste0("^", jenis, "\\."), full.names = TRUE))
-    ext <- tolower(tools::file_ext(berkas$name))
     file.copy(berkas$datapath, file.path("www/kustom", paste0(jenis, ".", ext)), overwrite = TRUE)
-    session$sendCustomMessage("ganti_gambar", list(jenis = jenis, url = gambar_tampilan(jenis)))
+    session$sendCustomMessage("ganti_gambar", list(jenis = jenis, url = gambar_tampilan(jenis), teks = teks_banner_tampil()))
     showNotification(paste(if (jenis == "logo") "Logo" else "Gambar banner", "diperbarui."))
   }
   observeEvent(input$p_logo, simpan_gambar(input$p_logo, "logo"))
   observeEvent(input$p_header, simpan_gambar(input$p_header, "header"))
   observeEvent(input$p_reset_gambar, {
     unlink(list.files("www/kustom", full.names = TRUE))
-    for (j in c("logo", "header")) session$sendCustomMessage("ganti_gambar", list(jenis = j, url = gambar_tampilan(j)))
+    for (j in c("logo", "header")) session$sendCustomMessage("ganti_gambar", list(jenis = j, url = gambar_tampilan(j), teks = teks_banner_tampil()))
     showNotification("Kembali ke logo & banner bawaan.")
   })
 

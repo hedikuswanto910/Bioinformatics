@@ -44,7 +44,14 @@ KONFIG <- list(
   #                             www/kustom/header.jpg (nama berkas tetap)
   #   Log biaya Claude & jejak  tabel log_ai dan jejak di data/lokal/zi.sqlite
   # Tampilkan kembali (mis. hanya di komputer Admin) dengan ZI_MENU_PENGATURAN=ya
-  menu_pengaturan = tolower(Sys.getenv("ZI_MENU_PENGATURAN", "tidak")) %in% c("ya", "true", "1")
+  menu_pengaturan = tolower(Sys.getenv("ZI_MENU_PENGATURAN", "tidak")) %in% c("ya", "true", "1"),
+
+  # --- Gambar header (JPG/JPEG/PNG) --------------------------------------------
+  # Logo  : www/kustom/logo.png   (bila tidak ada: www/gambar/logo_bawaan.png)
+  # Banner: www/kustom/header.jpg (bila tidak ada: www/gambar/header_bawaan.jpg)
+  # Teks nama unit di atas banner: otomatis (tampil hanya pada banner bawaan),
+  # ya (selalu tampil), atau tidak (tidak pernah tampil).
+  teks_banner = Sys.getenv("ZI_TEKS_BANNER", "otomatis")
 )
 
 # Ambang aturan validasi berbasis aturan (bisa disesuaikan Tim ZI)
