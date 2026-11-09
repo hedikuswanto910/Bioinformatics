@@ -139,7 +139,19 @@ Rscript scripts/siapkan_data.R --riwayat "Indeks_Revisi_FK_UNHAS.xlsx"
 Rscript scripts/siapkan_data.R --isian "Indeks_Revisi_FK_UNHAS.xlsx" --tahun 2027
 ```
 
-Kedua langkah ini juga tersedia di menu **Pengaturan**. Data internal disimpan di `data/lokal/` dan tidak disertakan ke GitHub.
+Data internal disimpan di `data/lokal/` dan tidak disertakan ke GitHub.
+
+**Pengaturan manual.** Menu **Pengaturan** disembunyikan secara bawaan agar parameter tidak dapat diubah dari peramban. Seluruh pengaturan dilakukan oleh Admin:
+
+| Pengaturan | Cara mengubah |
+|---|---|
+| Tahun penilaian | `ZI_TAHUN` di `.Renviron`, lalu mulai ulang R |
+| Tingkat penalaran Claude | `ZI_CLAUDE_EFFORT` di `.Renviron` (`low`, `medium`, `high`, `xhigh`) |
+| Impor isian dan riwayat | `scripts/siapkan_data.R` (perintah di atas) |
+| Logo dan banner | Salin berkas ke `www/kustom/logo.png` dan `www/kustom/header.jpg`; nama berkas harus `logo.*` dan `header.*` |
+| Log biaya Claude dan jejak audit | Baca tabel `log_ai` dan `jejak` di `data/lokal/zi.sqlite`, misalnya `DBI::dbReadTable(DBI::dbConnect(RSQLite::SQLite(), "data/lokal/zi.sqlite"), "log_ai")` |
+
+Untuk menampilkan kembali menu tersebut, misalnya hanya pada komputer Admin, tambahkan `ZI_MENU_PENGATURAN=ya` di `.Renviron`.
 
 **Menghubungkan Claude (opsional):**
 1. Salin `.Renviron.contoh` menjadi `.Renviron`.
@@ -158,7 +170,7 @@ Model bawaan adalah `claude-opus-5-5`, dengan *fallback* sisi server bila permin
 | Analisis | Analisis penilaian terdahulu; evaluasi kinerja validator |
 | Dokumen | Draf dokumen berbasis fakta; pemeriksaan Prosedur Mutu; ekspor Excel dan Word |
 | Glosarium Kode | Konvensi kode butir, rumusan lengkap, dan padanan klausul ISO |
-| Pengaturan | Parameter, impor data, logo dan banner, pemakaian Claude, jejak audit |
+| Pengaturan | Tersembunyi secara bawaan (`ZI_MENU_PENGATURAN=ya` untuk menampilkan): parameter, impor data, logo dan banner, pemakaian Claude, jejak audit |
 
 **Ekspor Excel** berisi isian, temuan, rekap skor, dan register tindakan korektif.
 

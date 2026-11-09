@@ -33,7 +33,18 @@ KONFIG <- list(
   harga_input  = 4,
   harga_output = 20,
   # Batas ukuran total PDF yang dikirim ke Claude dalam satu permintaan
-  maks_mb_pdf  = 25
+  maks_mb_pdf  = 25,
+
+  # --- Menu Pengaturan --------------------------------------------------------
+  # Bawaan: TIDAK ditampilkan. Ubah pengaturan secara manual:
+  #   Tahun penilaian ......... ZI_TAHUN di .Renviron
+  #   Effort Claude ........... ZI_CLAUDE_EFFORT di .Renviron (low/medium/high/xhigh)
+  #   Impor isian & riwayat ... Rscript scripts/siapkan_data.R (lihat README)
+  #   Logo & banner ........... salin berkas ke www/kustom/logo.png dan
+  #                             www/kustom/header.jpg (nama berkas tetap)
+  #   Log biaya Claude & jejak  tabel log_ai dan jejak di data/lokal/zi.sqlite
+  # Tampilkan kembali (mis. hanya di komputer Admin) dengan ZI_MENU_PENGATURAN=ya
+  menu_pengaturan = tolower(Sys.getenv("ZI_MENU_PENGATURAN", "tidak")) %in% c("ya", "true", "1")
 )
 
 # Ambang aturan validasi berbasis aturan (bisa disesuaikan Tim ZI)

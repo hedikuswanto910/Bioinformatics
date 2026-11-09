@@ -251,7 +251,8 @@ Konvensi penamaan dokumen bukti yang dianjurkan: **TAHUN_KODE_JENIS_URAIAN**, mi
   ),
 
   # ---------------------------------------------------------------- Pengaturan
-  nav_panel("Pengaturan",
+  # Tersembunyi secara bawaan; lihat KONFIG$menu_pengaturan di R/00_konfigurasi.R
+  if (KONFIG$menu_pengaturan) nav_panel("Pengaturan",
     kisi(desktop = c(1, 1), tablet = 1,
       card(card_header("Parameter umum dan Claude"),
            numericInput("p_tahun", "Tahun penilaian", KONFIG$tahun, min = 2020, max = 2100),
@@ -586,7 +587,7 @@ server <- function(input, output, session) {
   output$ui_analisis <- renderUI({
     rw <- riwayat()
     if (is.null(rw)) return(card(div(class = "alert alert-info",
-      "Data riwayat penilaian belum tersedia. Impor berkas LKE yang memuat jawaban dan catatan TP PTN/TPSK/TPI melalui menu Pengaturan.")))
+      "Data riwayat penilaian belum tersedia. Admin perlu mengimpor berkas LKE yang memuat jawaban dan catatan TP PTN/TPSK/TPI dengan perintah: Rscript scripts/siapkan_data.R --riwayat <berkas.xlsx>")))
     tagList(
       card(card_header("Ringkasan temuan"), uiOutput("an_ringkas")),
       kisi(desktop = c(5, 7), tablet = 1,
@@ -688,7 +689,7 @@ server <- function(input, output, session) {
   # ------------------------------------------------------------- Evaluasi validator
   output$ui_evaluasi <- renderUI({
     rw <- riwayat()
-    if (is.null(rw)) return(card(div(class = "alert alert-info", "Evaluasi memerlukan data riwayat penilaian (menu Pengaturan).")))
+    if (is.null(rw)) return(card(div(class = "alert alert-info", "Evaluasi memerlukan data riwayat penilaian (impor dengan scripts/siapkan_data.R --riwayat).")))
     ev <- evaluasi_validator(RB, isian_dari_riwayat(rw), rw, tahun())
     if (is.null(ev)) return(card(div(class = "alert alert-info", "Data riwayat tidak memuat nilai TPI yang dapat dibandingkan.")))
     ci_s <- ci_wilson(ev$tp, ev$tp + ev$fn); ci_p <- ci_wilson(ev$tp, ev$tp + ev$fp); ci_sp <- ci_wilson(ev$tn, ev$tn + ev$fp)

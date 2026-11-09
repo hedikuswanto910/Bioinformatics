@@ -9,3 +9,5 @@ ZI_UNIT=Fakultas Kedokteran Universitas Hasanuddin
 # Opsional:
 # ZI_CLAUDE_MODEL=claude-opus-5-5
 # ZI_CLAUDE_EFFORT=medium
+# Menu Pengaturan disembunyikan secara bawaan. Isi "ya" hanya di komputer Admin:
+# ZI_MENU_PENGATURAN=tidak

@@ -172,8 +172,8 @@ butir_html <- function(kode, pertanyaan, n = 55) {
 #   -> banner/gambar utama di bawahnya.
 # Banner tampil penuh di Beranda dan menjadi pita tipis di menu lain agar
 # tidak menghabiskan layar saat mengisi LKE.
-# Logo & banner diganti dari menu Pengaturan (disimpan di www/kustom/, tidak
-# ikut ke GitHub) atau dengan menaruh file logo.* / header.* di folder itu.
+# Logo & banner: taruh file logo.* / header.* di folder www/kustom/ (tidak
+# ikut ke GitHub), atau lewat menu Pengaturan bila ZI_MENU_PENGATURAN=ya.
 # =============================================================================
 
 gambar_kustom <- function(jenis) {
