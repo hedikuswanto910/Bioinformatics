@@ -222,7 +222,6 @@ banner_ui <- function() {
     htmltools::div(class = "bingkai",
       htmltools::img(src = gambar_tampilan("header"), id = "gambar-banner", alt = "Banner"),
       htmltools::div(class = "keterangan-banner",
-        htmltools::div(class = "nama-unit", KONFIG$unit),
         htmltools::div(class = "subjudul", "Dashboard Lembar Kerja Evaluasi Zona Integritas menuju WBK/WBBM"),
         htmltools::span(class = "pil-tahun", paste("Tahun penilaian", KONFIG$tahun)))))
 }
