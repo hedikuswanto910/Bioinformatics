@@ -102,6 +102,7 @@ ui <- page_navbar(
   window_title = paste("LKE ZI -", KONFIG$unit),
   header = tagList(tags$head(tags$style(HTML(CSS_APLIKASI)), tags$style(HTML(CSS_HEADER)),
                              tags$style(HTML(CSS_RESPONSIF)),
+                             zi_ui_head(),
                              tags$style(HTML(sprintf(":root { --jarak-ribbon: %s; }", KONFIG$jarak_menu))),
                              tags$script(HTML(JS_APLIKASI)), tags$script(HTML(JS_HEADER)), tags$script(HTML(JS_RESPONSIF))),
                    banner_ui()),
@@ -117,8 +118,9 @@ ui <- page_navbar(
     ),
     kisi(desktop = c(7, 5), tablet = 1,
       card(card_header("Perbandingan skor klaim dan penilaian evaluator terdahulu (% terhadap bobot)"),
-           plotOutput("plot_komponen", height = "auto")),
-      card(card_header("Status validasi per komponen"), DT::DTOutput("tbl_progres", fill = FALSE))
+           zi_chart_output("grafik_komponen")),
+      card(card_header("Status validasi per komponen"), zi_chart_output("grafik_status"),
+           tags$details(class = "mt-2", tags$summary("Tabel angka"), DT::DTOutput("tbl_progres", fill = FALSE)))
     ),
     kisi(desktop = c(5, 7), tablet = 1,
       card(card_header("Analisis sensitivitas skor"), DT::DTOutput("tbl_skenario", fill = FALSE), uiOutput("ui_skenario_catatan")),
@@ -306,34 +308,9 @@ server <- function(input, output, session) {
   output$vb_hijau      <- renderText(sprintf("%d / %d", sum(status()$status == "hijau"), nrow(status())))
   output$vb_merah      <- renderText(sprintf("%d / %d", sum(status()$status == "merah"), sum(status()$status == "kuning")))
 
-  # Lebar wadah grafik (dikirim browser setiap kali ukuran layar berubah)
-  lebar_grafik <- reactive(session$clientData$output_plot_komponen_width %||% 800)
-  output$plot_komponen <- renderPlot({
-    sempit <- lebar_grafik() < 640
-    kp <- skor()$komponen
-    d <- data.frame(komponen = paste0("Zona ", kp$komponen_no, " (", kp$area_kode, ") ", kp$komponen),
-                    sumber = "Klaim saat ini", persen = 100 * kp$skor / kp$bobot_komponen)
-    rw <- riwayat()
-    sumber_lalu <- c(jawaban_unit = "Klaim unit (lalu)", jawaban_tpi = "TPI (lalu)")
-    if (!is.null(rw)) {
-      for (kol in names(sumber_lalu)) {
-        if (!any(nzchar(rw[[kol]]))) next
-        k2 <- hitung_skor(RB, stats::setNames(rw[[kol]], rw$kode), kosong_nol = FALSE)$komponen
-        d <- rbind(d, data.frame(komponen = paste0("Zona ", k2$komponen_no, " (", k2$area_kode, ") ", k2$komponen), sumber = sumber_lalu[[kol]],
-                                 persen = 100 * k2$skor / k2$bobot_komponen))
-      }
-    }
-    d$sumber <- factor(d$sumber, c(unname(sumber_lalu), "Klaim saat ini"))
-    if (sempit) d$komponen <- sub("^(Zona [0-9]+ \\([PR]\\)).*$", "\\1", d$komponen)  # label pendek di layar sempit
-    d$komponen <- factor(d$komponen, rev(sort(unique(d$komponen))))
-    ggplot2::ggplot(d, ggplot2::aes(x = persen, y = komponen, fill = sumber)) +
-      ggplot2::geom_col(position = ggplot2::position_dodge(width = 0.8), width = 0.75) +
-      ggplot2::scale_fill_manual(values = c("Klaim unit (lalu)" = "#E8B4AE", "TPI (lalu)" = WARNA$emas, "Klaim saat ini" = WARNA$marun), drop = TRUE) +
-      ggplot2::scale_x_continuous(limits = c(0, 100), expand = c(0, 0)) +
-      ggplot2::labs(x = "% dari bobot komponen", y = NULL, fill = NULL) +
-      ggplot2::theme_minimal(base_size = if (sempit) 11 else 12) +
-      ggplot2::theme(legend.position = "top", panel.grid.major.y = ggplot2::element_blank())
-  }, height = function() if (lebar_grafik() < 640) 520 else 440)
+  # Grafik bergaya shadcn/ui charts (Recharts; lihat R/95_antarmuka.R)
+  output$grafik_komponen <- render_zi_chart(spek_grafik_komponen(RB, skor(), riwayat()))
+  output$grafik_status   <- render_zi_chart(spek_grafik_status(status(), BUTIR))
 
   output$tbl_progres <- DT::renderDT({
     st <- merge(status(), unique(BUTIR[, c("kode", "zona", "nama_zona")]), by = "kode")

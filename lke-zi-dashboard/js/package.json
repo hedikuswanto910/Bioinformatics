@@ -1,0 +1,17 @@
+{
+  "name": "lke-zi-dashboard-ui",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Bundel antarmuka (anime.js, Motion, Recharts bergaya shadcn) untuk dashboard LKE ZI",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "animejs": "^4.5.0",
+    "esbuild": "^0.25.12",
+    "motion": "^14.14.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "recharts": "^3.10.1"
+  }
+}

@@ -22,7 +22,7 @@ const cek = (w, nama, ok, info = '') => { hasil.push({ w, nama, ok, info }); };
     const p = await ctx.newPage();
     const errs = []; p.on('pageerror', e => errs.push(String(e)));
     const idle = async () => { await p.waitForFunction(() => window.Shiny && !document.documentElement.classList.contains('shiny-busy'), null, { timeout: 60000 }); await p.waitForTimeout(700); };
-    await p.goto(URL); await p.waitForSelector('#plot_komponen img', { timeout: 60000 }); await idle();
+    await p.goto(URL); await p.waitForSelector('#grafik_komponen .recharts-surface', { timeout: 60000 }); await idle();
 
     const kasar = await p.evaluate(() => matchMedia('(pointer: coarse)').matches);
     const dasar = await p.evaluate(() => {
@@ -41,9 +41,9 @@ const cek = (w, nama, ok, info = '') => { hasil.push({ w, nama, ok, info }); };
     cek(L.w, 'navbar tidak menutupi konten', dasar.bannerAtas >= dasar.navBawah - 0.5, `nav bawah ${dasar.navBawah}, konten ${dasar.bannerAtas}`);
     const kpiHarap = L.w < 768 ? 1 : (L.w < 1024 ? 2 : 4);
     cek(L.w, `KPI ${kpiHarap} kolom`, dasar.kpi === kpiHarap, `${dasar.kpi} kolom`);
-    const grafik = await p.evaluate(() => { const i = document.querySelector('#plot_komponen img'), c = document.getElementById('plot_komponen');
-      return { img: i.getBoundingClientRect().width, wadah: c.getBoundingClientRect().width }; });
-    cek(L.w, 'grafik selebar wadah', Math.abs(grafik.img - grafik.wadah) < 3, `img ${grafik.img} vs wadah ${grafik.wadah}`);
+    const grafik = await p.evaluate(() => { const g = document.querySelector('#grafik_komponen .recharts-surface'), c = document.getElementById('grafik_komponen');
+      return { svg: g.getBoundingClientRect().width, wadah: c.getBoundingClientRect().width }; });
+    cek(L.w, 'grafik selebar wadah', Math.abs(grafik.svg - grafik.wadah) < 3, `svg ${grafik.svg} vs wadah ${grafik.wadah}`);
     await p.screenshot({ path: `${SP}/shots/r_${L.w}_beranda.png` });
 
     // sticky setelah scroll
@@ -126,12 +126,11 @@ const cek = (w, nama, ok, info = '') => { hasil.push({ w, nama, ok, info }); };
   }
   // grafik saat ukuran layar diubah
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } }); const p = await ctx.newPage();
-  await p.goto(URL); await p.waitForSelector('#plot_komponen img');
-  await p.setViewportSize({ width: 600, height: 900 }); await p.waitForTimeout(3500);
-  const g = await p.evaluate(() => ({ img: document.querySelector('#plot_komponen img').naturalWidth / (window.devicePixelRatio || 1),
-                                      tampil: document.querySelector('#plot_komponen img').getBoundingClientRect().width,
-                                      wadah: document.getElementById('plot_komponen').getBoundingClientRect().width }));
-  cek('1440->600', 'grafik digambar ulang sesuai lebar baru', Math.abs(g.img - g.wadah) < 4 && Math.abs(g.tampil - g.wadah) < 3, JSON.stringify(g));
+  await p.goto(URL); await p.waitForSelector('#grafik_komponen .recharts-surface');
+  await p.setViewportSize({ width: 600, height: 900 }); await p.waitForTimeout(1500);
+  const g = await p.evaluate(() => ({ svg: document.querySelector('#grafik_komponen .recharts-surface').getBoundingClientRect().width,
+                                      wadah: document.getElementById('grafik_komponen').getBoundingClientRect().width }));
+  cek('1440->600', 'grafik digambar ulang sesuai lebar baru', Math.abs(g.svg - g.wadah) < 3, JSON.stringify(g));
   await browser.close();
   for (const h of hasil) console.log(`${h.ok ? 'LULUS' : 'GAGAL'} | ${String(h.w).padEnd(8)} | ${h.nama}${h.ok ? '' : ' -> ' + h.info}`);
   console.log(`\nTotal: ${hasil.filter(h => h.ok).length}/${hasil.length} lulus`);

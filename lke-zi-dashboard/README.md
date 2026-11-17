@@ -160,6 +160,16 @@ Untuk menampilkan kembali menu tersebut, misalnya hanya pada komputer Admin, tam
 
 Model bawaan adalah `claude-opus-5-5`, dengan *fallback* sisi server bila permintaan ditolak. Sebelum mengirim dokumen ke Claude, mintalah persetujuan pimpinan, dan hindari dokumen yang memuat data pribadi sensitif.
 
+**Animasi dan grafik interaktif.** Antarmuka memakai tiga pustaka JavaScript yang dibundel menjadi satu berkas, `www/vendor/zi-ui.min.js`; menjalankan aplikasi tidak memerlukan Node.js.
+
+| Pustaka | Dipakai untuk |
+|---|---|
+| anime.js 4.5 | Angka KPI dihitung naik ke nilai baru; kartu KPI dan teks banner muncul berurutan |
+| Motion 14.14 | Kartu muncul saat digulir, efek hover pegas pada kartu KPI, penegasan saat isian bebas temuan, kemunculan hasil Claude |
+| Recharts 3.10 (gaya shadcn/ui charts) | Grafik perbandingan skor per komponen dan grafik status validasi bertumpuk, dengan tooltip dan legenda bergaya shadcn |
+
+Komponen grafik ditulis ulang mengikuti tampilan shadcn/ui charts di `js/src/main.jsx`, karena kode shadcn tidak dapat diambil saat pengembangan. Semua animasi dimatikan otomatis bila pengguna mengaktifkan pengaturan *reduce motion* di sistem operasinya. Untuk mengubah kode JavaScript, jalankan `npm install` lalu `npm run build` di folder `js/`. Daftar lisensi pustaka pihak ketiga ada di `www/vendor/LISENSI-PIHAK-KETIGA.txt`.
+
 ## 7. Navigasi aplikasi
 
 | Menu | Isi |
@@ -196,6 +206,9 @@ R/70_impor.R            pembaca templat LKE Excel
 R/80_tampilan.R         tema, header, dan ribbon
 R/85_mutu.R             PDCA, kendali nama dokumen, keselarasan ISO, skenario skor, evaluasi validator
 R/90_responsif.R        tata letak responsif
+R/95_antarmuka.R        grafik bergaya shadcn/ui (Recharts) dan pemuat animasi
+js/                     sumber JavaScript (anime.js, Motion, Recharts) dan skrip build
+www/vendor/             bundel zi-ui.min.js hasil build beserta daftar lisensinya
 data/rubrik_lke.csv     113 butir dan 24 rincian beserta kriteria dan bobot
 data/pemetaan_iso.csv   pemetaan indikatif sub-komponen ke klausul ISO 9001:2015 dan ISO 37001:2016
 data/lokal/             data internal unit (tidak disertakan ke GitHub)

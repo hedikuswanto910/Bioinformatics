@@ -218,3 +218,20 @@ test_that("register tindakan korektif menegakkan syarat verifikasi", {
   simpan_capa(con, modifyList(d, list(status = "Selesai", akar_masalah = "Tidak ada kalender")), 2026, id = x$id)
   expect_equal(baca_capa(con, 2026)$status, "Selesai")
 })
+
+test_that("spesifikasi grafik komponen dan status lengkap dan konsisten", {
+  j <- isi_semua("A")
+  isian <- data.frame(kode = names(j), jawaban = unname(j), narasi = "", bukti = "", stringsAsFactors = FALSE)
+  sk <- hitung_skor(RB, jawaban_dari_isian(isian))
+  sp <- spek_grafik_komponen(RB, sk, NULL)
+  expect_equal(vapply(sp$seri, `[[`, "", "key"), "klaim")
+  expect_true(all(c("label", "pendek", "klaim") %in% names(sp$data)))
+  expect_true(all(sp$data$klaim >= 0 & sp$data$klaim <= 100))
+  st <- status_butir(RB, isian, validasi_semua(RB, isian, NULL, 2026))
+  bt <- RB[RB$tipe == "butir", ]
+  bt$zona <- ifelse(bt$bagian == "Hasil", "H", as.character(bt$komponen_no))
+  bt$nama_zona <- ifelse(bt$zona == "H", "Hasil", paste("Zona", bt$zona))
+  ss <- spek_grafik_status(st, bt)
+  expect_true(ss$tumpuk)
+  expect_equal(sum(ss$data[, c("hijau", "kuning", "merah", "belum")]), nrow(st))
+})
