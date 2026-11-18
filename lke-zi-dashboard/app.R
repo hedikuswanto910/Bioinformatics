@@ -140,8 +140,7 @@ Skor pada halaman ini merupakan **skor klaim unit**, bukan prediksi nilai evalua
     tata_samping("ts_isi", judul = "Daftar butir per zona", mobile = "laci",
       samping = tagList(
         textInput("f_cari", NULL, placeholder = "Cari kode atau kata kunci, mis. P1.ii atau SOP"),
-        selectInput("f_status", NULL, c("Semua status" = "Semua", "Belum diisi" = "belum diisi",
-                                        "Merah (kritis)" = "merah", "Kuning (berisiko)" = "kuning", "Hijau (memenuhi)" = "hijau")),
+        pil_status_input("f_status"),
         uiOutput("ui_daftar_zona"),
         helpText("Rumusan pertanyaan lengkap ditampilkan pada kotak 'Keterangan kode' setelah butir dibuka. Makna kode dijelaskan pada menu Glosarium Kode.")),
       uiOutput("ui_form"))
@@ -339,6 +338,11 @@ server <- function(input, output, session) {
     x
   })
   output$ui_daftar_zona <- renderUI(daftar_zona_ui(daftar_terlihat(), isolate(butir_sel())))
+  # Jumlah butir per status pada filter pil (diperbarui setiap kali isian disimpan)
+  observe({
+    updateRadioButtons(session, "f_status", choiceNames = pil_status_nama(jumlah_status(status())),
+                       choiceValues = unname(PIL_STATUS), selected = isolate(input$f_status) %||% "Semua", inline = TRUE)
+  })
 
   pilih_butir <- function(kode) {
     if (!(kode %in% BUTIR$kode)) return()

@@ -194,6 +194,78 @@ function pasangPenegasan() {
 }
 
 // ----------------------------------------------------------------------------
+// 2b. Motion: penanda yang meluncur (ribbon menu dan filter status pil)
+// ----------------------------------------------------------------------------
+const PEGAS_PENANDA = { type: 'spring', stiffness: 420, damping: 34, mass: 0.9 };
+
+function geserPenanda(penanda, kotak, langsung) {
+  const tujuan = { x: kotak.x, y: kotak.y, width: `${kotak.w}px`, height: `${kotak.h}px` };
+  gerak(penanda, tujuan, (langsung || kurangiGerak()) ? { duration: 0 } : PEGAS_PENANDA);
+}
+
+function pasangPenandaRibbon() {
+  const ul = document.getElementById('nav');
+  if (!ul) return;
+  const penanda = buatSpan('penanda-ribbon');
+  penanda.setAttribute('aria-hidden', 'true');
+  ul.prepend(penanda);
+  ul.classList.add('ada-penanda');
+  let langsung = true;
+  const sasaran = () => {
+    const aktif = ul.querySelector(':scope > li > a.nav-link.active:not(.dropdown-toggle)');
+    if (aktif) return aktif;
+    const sub = ul.querySelector('.dropdown-item.active');
+    return sub ? sub.closest('.dropdown').querySelector('.dropdown-toggle') : null;
+  };
+  const tempatkan = () => {
+    const a = sasaran();
+    if (!a || getComputedStyle(penanda).display === 'none') { langsung = true; return; }
+    const ru = ul.getBoundingClientRect(); const ra = a.getBoundingClientRect();
+    geserPenanda(penanda, { x: ra.left - ru.left + ul.scrollLeft, y: ra.top - ru.top, w: ra.width, h: ra.height }, langsung);
+    langsung = false;
+  };
+  document.addEventListener('shown.bs.tab', () => requestAnimationFrame(tempatkan));
+  new ResizeObserver(() => { langsung = true; tempatkan(); }).observe(ul);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { langsung = true; tempatkan(); });
+  tempatkan();
+}
+
+function pasangPilStatus() {
+  const pasang = (wadah) => {
+    const grup = wadah.querySelector('.shiny-options-group');
+    if (!grup) return;
+    let penanda = grup.querySelector(':scope > .pil-penanda');
+    const baru = !penanda;
+    if (baru) {
+      penanda = buatSpan('pil-penanda');
+      penanda.setAttribute('aria-hidden', 'true');
+      grup.prepend(penanda);
+    }
+    const tempatkan = (langsung) => {
+      const lbl = grup.querySelector('input:checked');
+      const label = lbl && lbl.closest('label');
+      if (!label || !label.offsetWidth) return;
+      geserPenanda(penanda, { x: label.offsetLeft, y: label.offsetTop, w: label.offsetWidth, h: label.offsetHeight }, langsung);
+    };
+    wadah.classList.add('siap');
+    if (!grup._pilTerpasang) {
+      grup._pilTerpasang = true;
+      grup.addEventListener('change', () => tempatkan(false));
+      new ResizeObserver(() => tempatkan(true)).observe(grup);
+    }
+    tempatkan(true);
+  };
+  document.querySelectorAll('.pil-status').forEach((wadah) => {
+    pasang(wadah);
+    // updateRadioButtons menulis ulang isi grup: pasang kembali penandanya.
+    new MutationObserver(() => {
+      const grup = wadah.querySelector('.shiny-options-group');
+      if (grup && !grup.querySelector(':scope > .pil-penanda')) { grup._pilTerpasang = false; pasang(wadah); }
+    }).observe(wadah, { childList: true, subtree: true });
+  });
+}
+
+// ----------------------------------------------------------------------------
 // 3. Grafik bergaya shadcn/ui charts di atas Recharts
 // ----------------------------------------------------------------------------
 function useLebar(ref) {
@@ -323,7 +395,7 @@ daftarkanOutputShiny();
 pasangKpi();
 pasangCincin();
 pasangPenegasan();
-const mulai = () => { animasiMasuk(); animasiHover(); setTimeout(animasiGulir, 300); };
+const mulai = () => { pasangPenandaRibbon(); pasangPilStatus(); animasiMasuk(); animasiHover(); setTimeout(animasiGulir, 300); };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mulai); else mulai();
 
-window.ZiUI = { odometer, versi: '1.1.0' };
+window.ZiUI = { odometer, versi: '1.2.0' };

@@ -101,5 +101,72 @@ CSS_GRAFIK <- isi_warna("
 zi_ui_head <- function() {
   htmltools::tagList(
     htmltools::tags$style(htmltools::HTML(CSS_GRAFIK)),
+    htmltools::tags$style(htmltools::HTML(CSS_PIL)),
     htmltools::tags$script(src = paste0("vendor/zi-ui.min.js?v=", as.integer(file.mtime("www/vendor/zi-ui.min.js"))), defer = NA))
 }
+
+# -----------------------------------------------------------------------------
+# Filter status butir berbentuk pil (kontrol segmen) dengan penanda meluncur.
+# Tetap memakai radioButtons Shiny sehingga input$f_status tidak berubah;
+# tampilan dan penanda meluncurnya diatur CSS_PIL dan zi-ui.min.js.
+# -----------------------------------------------------------------------------
+PIL_STATUS <- c(Semua = "Semua", Merah = "merah", Kuning = "kuning", Hijau = "hijau", Belum = "belum diisi")
+
+pil_status_nama <- function(jumlah = NULL) {
+  lapply(names(PIL_STATUS), function(lbl) {
+    v <- PIL_STATUS[[lbl]]
+    n <- if (is.null(jumlah) || is.null(jumlah[[v]])) "\u2013" else format(jumlah[[v]])
+    htmltools::tags$span(class = paste0("pil-isi pil-", sub(" .*", "", v)),
+      htmltools::tags$span(class = "pil-angka", n), htmltools::tags$span(class = "pil-label", lbl))
+  })
+}
+
+pil_status_input <- function(id, label = "Filter status butir") {
+  htmltools::div(class = "pil-status",
+    shiny::radioButtons(id, label, choiceNames = pil_status_nama(), choiceValues = unname(PIL_STATUS),
+                        selected = "Semua", inline = TRUE))
+}
+
+jumlah_status <- function(status) {
+  st <- status$status
+  c(Semua = length(st), merah = sum(st == "merah"), kuning = sum(st == "kuning"),
+    hijau = sum(st == "hijau"), `belum diisi` = sum(st == "belum diisi"))
+}
+
+CSS_PIL <- isi_warna("
+/* --- filter status berbentuk pil --- */
+.pil-status { margin-bottom: .75rem; container-type: inline-size; }
+.pil-status .control-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.pil-status .shiny-options-group { position: relative; isolation: isolate; display: grid; grid-template-columns: repeat(auto-fit, minmax(2.75rem, 1fr));
+  gap: 2px; padding: 3px; border-radius: 12px; background: rgba(122,31,31,.08); }
+.pil-status label.radio-inline { position: relative; display: flex; align-items: center; justify-content: center; min-height: 2.75rem;
+  margin: 0 !important; padding: .3rem .1rem !important; border-radius: 9px; cursor: pointer; text-align: center; transition: background .15s ease; }
+/* Bootstrap memberi ruang kiri untuk bulatan radio; tidak diperlukan pada pil */
+.pil-status label.radio-inline:hover { background: rgba(255,255,255,.55); }
+.pil-status input[type=radio] { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.pil-status label:has(input:focus-visible) { outline: 2px solid {{emas}}; outline-offset: 1px; }
+.pil-isi { display: flex; flex-direction: column; align-items: center; line-height: 1.15; pointer-events: none; }
+.pil-angka { font-weight: 700; font-size: .95rem; font-variant-numeric: tabular-nums; color: #3A1010; }
+.pil-label { display: inline-flex; align-items: center; gap: .25rem; font-size: .7rem; color: #7A6A6A; white-space: nowrap; }
+.pil-label::before { content: ''; width: .45rem; height: .45rem; border-radius: 50%; background: var(--warna-pil); }
+.pil-Semua { --warna-pil: {{marun}}; } .pil-merah { --warna-pil: #B42318; } .pil-kuning { --warna-pil: #D99A00; }
+.pil-hijau { --warna-pil: #1E7B4A; } .pil-belum { --warna-pil: #A8A29E; }
+.pil-status label:has(input:checked) .pil-angka { color: {{marun}}; }
+.pil-status label:has(input:checked) .pil-label { color: #3A1010; font-weight: 600; }
+.pil-penanda { position: absolute; top: 0; left: 0; z-index: -1; border-radius: 9px; background: #fff; pointer-events: none;
+  box-shadow: 0 1px 2px rgba(78,7,0,.12), 0 4px 12px rgba(78,7,0,.12); }
+/* tidak cukup ruang untuk 5 pil selebar >= 44 px: susun 3 + 2 */
+@container (max-width: 14.75rem) { .pil-status .shiny-options-group { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+/* tanpa JavaScript: pil terpilih tetap ditandai */
+.pil-status:not(.siap) label:has(input:checked) { background: #fff; box-shadow: 0 1px 2px rgba(78,7,0,.12); }
+
+/* --- penanda meluncur di ribbon menu (desktop) --- */
+.penanda-ribbon { display: none; }
+@media (min-width: 1024px) {
+  #nav { position: relative; isolation: isolate; }
+  .penanda-ribbon { display: block; position: absolute; top: 0; left: 0; z-index: -1; pointer-events: none; background: rgba(0,0,0,.22); }
+  .penanda-ribbon::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; border-radius: 4px 4px 0 0; background: {{emas}}; }
+  #nav.ada-penanda .nav-link.active { background: transparent !important; }
+  #nav.ada-penanda .nav-link.active:not(.dropdown-toggle)::after { opacity: 0; }
+}
+")

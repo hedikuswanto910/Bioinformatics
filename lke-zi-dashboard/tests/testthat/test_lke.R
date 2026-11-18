@@ -243,3 +243,14 @@ test_that("kartu KPI memuat cincin progres dan nada peringatan", {
   expect_match(h, "nada-peringatan", fixed = TRUE)
   expect_match(as.character(kartu_kpi("Skor", "vb_y", "gauge-high")), "nada-normal", fixed = TRUE)
 })
+
+test_that("filter status pil memakai nilai yang sama dengan filter lama dan menghitung jumlahnya", {
+  expect_equal(unname(PIL_STATUS), c("Semua", "merah", "kuning", "hijau", "belum diisi"))
+  st <- data.frame(kode = c("a", "b", "c", "d"), status = c("merah", "hijau", "hijau", "belum diisi"))
+  j <- jumlah_status(st)
+  expect_equal(unname(j[c("Semua", "merah", "kuning", "hijau", "belum diisi")]), c(4, 1, 0, 2, 1))
+  h <- as.character(pil_status_input("f_status"))
+  expect_match(h, 'value="belum diisi"', fixed = TRUE)
+  expect_match(h, "pil-status", fixed = TRUE)
+  expect_match(paste(sapply(pil_status_nama(j), as.character), collapse = ""), ">2<", fixed = TRUE)
+})
