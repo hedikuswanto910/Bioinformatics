@@ -114,7 +114,7 @@ ui <- page_navbar(
       kartu_kpi("Skor klaim komponen Pengungkit", "vb_pengungkit", "gauge-high"),
       kartu_kpi("Skor klaim komponen Hasil", "vb_hasil", "chart-line"),
       kartu_kpi("Butir memenuhi validasi", "vb_hijau", "circle-check"),
-      kartu_kpi("Butir kritis / berisiko", "vb_merah", "triangle-exclamation")
+      kartu_kpi("Butir kritis / berisiko", "vb_merah", "triangle-exclamation", nada = "peringatan")
     ),
     kisi(desktop = c(7, 5), tablet = 1,
       card(card_header("Perbandingan skor klaim dan penilaian evaluator terdahulu (% terhadap bobot)"),
@@ -307,6 +307,13 @@ server <- function(input, output, session) {
   output$vb_hasil      <- renderText(sprintf("%.2f / 40", skor()$ringkas$skor[4]))
   output$vb_hijau      <- renderText(sprintf("%d / %d", sum(status()$status == "hijau"), nrow(status())))
   output$vb_merah      <- renderText(sprintf("%d / %d", sum(status()$status == "merah"), sum(status()$status == "kuning")))
+  # Nilai cincin progres kartu KPI (0-1); dianimasikan di peramban
+  observe({
+    sk <- skor()$ringkas$skor; st <- status()$status; n <- max(length(st), 1)
+    session$sendCustomMessage("zi_cincin", list(
+      vb_pengungkit = sk[3] / 60, vb_hasil = sk[4] / 40,
+      vb_hijau = sum(st == "hijau") / n, vb_merah = sum(st %in% c("merah", "kuning")) / n))
+  })
 
   # Grafik bergaya shadcn/ui charts (Recharts; lihat R/95_antarmuka.R)
   output$grafik_komponen <- render_zi_chart(spek_grafik_komponen(RB, skor(), riwayat()))

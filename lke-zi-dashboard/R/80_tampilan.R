@@ -67,9 +67,23 @@ h1, h2, h3, h4, h5 { color: {{judul}}; font-weight: 700; }
   border-bottom: 4px solid {{emas}}; box-shadow: 0 8px 20px rgba(78,7,0,.28);
   transition: transform .2s ease, box-shadow .2s ease; }
 .kpi-kartu:hover { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(78,7,0,.35); }
-.kpi-kartu .kpi-ikon { display: inline-flex; align-items: center; justify-content: center; width: 2.6rem; height: 2.6rem;
-  border-radius: 50%; background: rgba(249,176,61,.16); color: {{emas}}; font-size: 1.2rem; }
-.kpi-kartu .kpi-ikon svg { width: 1.2rem; height: 1.2rem; fill: currentColor; }
+.kpi-kartu .kpi-ikon { position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 3.25rem; height: 3.25rem; border-radius: 50%; color: {{emas}}; font-size: 1.2rem; }
+.kpi-kartu .kpi-ikon::before { content: ''; position: absolute; inset: .42rem; border-radius: 50%; background: rgba(249,176,61,.16); }
+.kpi-kartu .kpi-ikon > svg:not(.kpi-cincin) { position: relative; width: 1.15rem; height: 1.15rem; fill: currentColor; }
+/* cincin progres */
+.kpi-cincin { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+.kpi-cincin circle { fill: none; stroke-width: 3; }
+.kpi-cincin .jalur { stroke: rgba(255,255,255,.16); }
+.kpi-cincin .isi { stroke: {{emas}}; stroke-linecap: round; }
+.kpi-kartu.nada-peringatan .kpi-cincin .isi { stroke: #FF9B85; }
+/* angka odometer: setiap digit bergulir vertikal */
+.kpi-kartu .kpi-nilai { font-variant-numeric: tabular-nums; }
+.odo-kolom { display: inline-block; height: 1.1em; overflow: hidden; vertical-align: bottom;
+  -webkit-mask-image: linear-gradient(transparent, #000 18%, #000 82%, transparent);
+          mask-image: linear-gradient(transparent, #000 18%, #000 82%, transparent); }
+.odo-pita { display: block; will-change: transform; }
+.odo-pita > span { display: block; height: 1.1em; line-height: 1.1em; }
 .kpi-kartu .kpi-nilai { font-size: clamp(1.5rem, 1.2rem + 1vw, 2.1rem); font-weight: 700; line-height: 1.1; color: #fff; }
 .kpi-kartu .kpi-nilai .shiny-text-output { display: inline; }
 .kpi-kartu .kpi-judul { font-size: .9rem; color: rgba(255,255,255,.85); line-height: 1.3; }

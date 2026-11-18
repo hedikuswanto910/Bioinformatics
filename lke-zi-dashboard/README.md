@@ -164,8 +164,8 @@ Model bawaan adalah `claude-opus-5-5`, dengan *fallback* sisi server bila permin
 
 | Pustaka | Dipakai untuk |
 |---|---|
-| anime.js 4.5 | Angka KPI dihitung naik ke nilai baru; kartu KPI dan teks banner muncul berurutan |
-| Motion 14.14 | Kartu muncul saat digulir, efek hover pegas pada kartu KPI, penegasan saat isian bebas temuan, kemunculan hasil Claude |
+| anime.js 4.5 | Cincin progres di sekeliling ikon kartu KPI (skor Pengungkit terhadap 60, skor Hasil terhadap 40, proporsi butir hijau, proporsi butir merah dan kuning); kartu KPI dan teks banner muncul berurutan |
+| Motion 14.14 | Angka KPI bergaya odometer (setiap digit bergulir ke nilai baru), kartu muncul saat digulir, efek hover pegas pada kartu KPI, penegasan saat isian bebas temuan, kemunculan hasil Claude |
 | Recharts 3.10 (gaya shadcn/ui charts) | Grafik perbandingan skor per komponen dan grafik status validasi bertumpuk, dengan tooltip dan legenda bergaya shadcn |
 
 Komponen grafik ditulis ulang mengikuti tampilan shadcn/ui charts di `js/src/main.jsx`, karena kode shadcn tidak dapat diambil saat pengembangan. Semua animasi dimatikan otomatis bila pengguna mengaktifkan pengaturan *reduce motion* di sistem operasinya. Untuk mengubah kode JavaScript, jalankan `npm install` lalu `npm run build` di folder `js/`. Daftar lisensi pustaka pihak ketiga ada di `www/vendor/LISENSI-PIHAK-KETIGA.txt`.

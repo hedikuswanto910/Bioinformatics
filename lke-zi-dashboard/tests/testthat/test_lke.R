@@ -235,3 +235,11 @@ test_that("spesifikasi grafik komponen dan status lengkap dan konsisten", {
   expect_true(ss$tumpuk)
   expect_equal(sum(ss$data[, c("hijau", "kuning", "merah", "belum")]), nrow(st))
 })
+
+test_that("kartu KPI memuat cincin progres dan nada peringatan", {
+  h <- as.character(kartu_kpi("Butir kritis", "vb_x", "circle-check", nada = "peringatan"))
+  expect_match(h, "kpi-cincin", fixed = TRUE)
+  expect_match(h, 'pathLength="100"', fixed = TRUE)
+  expect_match(h, "nada-peringatan", fixed = TRUE)
+  expect_match(as.character(kartu_kpi("Skor", "vb_y", "gauge-high")), "nada-normal", fixed = TRUE)
+})

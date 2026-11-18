@@ -29,9 +29,18 @@ kisi <- function(..., desktop = c(1, 1), tablet = 1, kelas = NULL) {
 kisi_kpi <- function(...) htmltools::div(class = "kisi-kpi", ...)
 
 # Satu kartu KPI rata tengah: ikon kecil, nilai (output Shiny), keterangan
-kartu_kpi <- function(judul, id_output, ikon) {
-  htmltools::div(class = "kpi-kartu", role = "group", `aria-label` = judul,
-    htmltools::span(class = "kpi-ikon", `aria-hidden` = "true", shiny::icon(ikon)),
+# Kartu KPI dengan cincin progres di sekeliling ikon. Nilai cincin (0-1)
+# dikirim dari server lewat pesan "zi_cincin" (lihat app.R) dan dianimasikan
+# di peramban (www/vendor/zi-ui.min.js). nada = "peringatan" memberi warna
+# cincin koral untuk indikator yang makin tinggi makin buruk.
+kartu_kpi <- function(judul, id_output, ikon, nada = c("normal", "peringatan")) {
+  nada <- match.arg(nada)
+  cincin <- htmltools::HTML(paste0(
+    '<svg class="kpi-cincin" viewBox="0 0 44 44" aria-hidden="true" focusable="false">',
+    '<circle class="jalur" cx="22" cy="22" r="19"/>',
+    '<circle class="isi" cx="22" cy="22" r="19" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/></svg>'))
+  htmltools::div(class = paste("kpi-kartu", paste0("nada-", nada)), role = "group", `aria-label` = judul,
+    htmltools::span(class = "kpi-ikon", `aria-hidden` = "true", cincin, shiny::icon(ikon)),
     htmltools::div(class = "kpi-nilai", shiny::textOutput(id_output, inline = TRUE)),
     htmltools::div(class = "kpi-judul", judul))
 }

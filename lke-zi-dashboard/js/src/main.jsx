@@ -1,7 +1,8 @@
 // =============================================================================
 // Bundel antarmuka dashboard LKE ZI
-//   - anime.js : animasi angka KPI dan kemunculan kartu/banner
-//   - Motion   : animasi masuk saat digulir (inView), efek hover pegas, dan
+//   - anime.js : cincin progres kartu KPI dan kemunculan kartu/banner
+//   - Motion   : angka KPI bergaya odometer, animasi masuk saat digulir
+//                (inView), efek hover pegas, dan
 //                penegasan saat isian menjadi bebas temuan
 //   - Recharts : grafik bergaya shadcn/ui charts (komponen ChartContainer,
 //                tooltip, dan legenda ditulis ulang di sini karena kode
@@ -21,27 +22,76 @@ const kurangiGerak = () => window.matchMedia && window.matchMedia('(prefers-redu
 const fmt = (n, desimal = 1) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: desimal, minimumFractionDigits: 0 }).format(n);
 
 // ----------------------------------------------------------------------------
-// 1. anime.js: angka KPI dihitung naik/turun ke nilai baru
+// 1. Angka KPI bergaya odometer (Motion): setiap digit bergulir vertikal dari
+//    nilai lama ke nilai baru; setelah selesai, isi elemen kembali menjadi
+//    teks biasa sehingga dapat disalin dan dibaca pembaca layar.
 // ----------------------------------------------------------------------------
 const POLA_ANGKA = /-?\d+(?:\.\d+)?/g;
+const TINGGI_DIGIT = 1.1; // em; harus sama dengan .odo-kolom di CSS
 
-function animasiAngka(el, teksLama, teksBaru) {
+function urutanDigit(dari, ke, naik) {
+  const hasil = [dari];
+  let d = dari;
+  while (d !== ke) { d = naik ? (d + 1) % 10 : (d + 9) % 10; hasil.push(d); }
+  return hasil;
+}
+
+function buatSpan(kelas, teks) {
+  const s = document.createElement('span');
+  if (kelas) s.className = kelas;
+  if (teks !== undefined) s.textContent = teks;
+  return s;
+}
+
+function odometer(el, teksLama, teksBaru) {
   const baru = teksBaru.match(POLA_ANGKA) || [];
-  const lama = (teksLama || '').match(POLA_ANGKA) || [];
   if (!baru.length || kurangiGerak()) { el.textContent = teksBaru; return; }
+  const lama = (teksLama || '').match(POLA_ANGKA) || [];
   const bagian = teksBaru.split(POLA_ANGKA);
-  const desimal = baru.map((s) => (s.split('.')[1] || '').length);
-  const awal = baru.map((s, i) => (lama[i] !== undefined ? parseFloat(lama[i]) : 0));
-  const akhir = baru.map(parseFloat);
-  const status = { t: 0 };
-  if (el._animasiAngka) el._animasiAngka.pause();
-  el._animasiAngka = anime(status, {
-    t: 1, duration: 900, ease: 'outExpo',
-    onUpdate: () => {
-      el.textContent = bagian.map((b, i) => b + (i < akhir.length
-        ? (awal[i] + (akhir[i] - awal[i]) * status.t).toFixed(desimal[i]) : '')).join('');
-    },
-    onComplete: () => { el.textContent = teksBaru; },
+  const tampil = buatSpan(''); tampil.setAttribute('aria-hidden', 'true');
+  const kolom = [];
+  bagian.forEach((teks, i) => {
+    if (teks) tampil.append(teks);
+    if (i >= baru.length) return;
+    const sBaru = baru[i];
+    const desimal = (sBaru.split('.')[1] || '').length;
+    const vBaru = parseFloat(sBaru);
+    const vLama = lama[i] !== undefined ? parseFloat(lama[i]) : 0;
+    const naik = vBaru >= vLama;
+    if (vBaru < 0) tampil.append('-');
+    let [intB, desB = ''] = Math.abs(vBaru).toFixed(desimal).split('.');
+    let [intL, desL = ''] = Math.abs(vLama).toFixed(desimal).split('.');
+    const panjang = Math.max(intB.length, intL.length);
+    intB = intB.padStart(panjang, '0'); intL = intL.padStart(panjang, '0');
+    const cB = intB + (desimal ? `.${desB}` : '');
+    const cL = intL + (desimal ? `.${desL}` : '');
+    for (let k = 0; k < cB.length; k += 1) {
+      if (cB[k] === '.') { tampil.append('.'); continue; }
+      const a = Number(cL[k]); const b = Number(cB[k]);
+      if (a === b) { tampil.append(cB[k]); continue; }
+      const urut = urutanDigit(a, b, naik);
+      const pita = buatSpan('odo-pita');
+      (naik ? urut : [...urut].reverse()).forEach((d) => pita.append(buatSpan('', String(d))));
+      const wadah = buatSpan('odo-kolom'); wadah.append(pita); tampil.append(wadah);
+      kolom.push({ pita, langkah: urut.length - 1, naik });
+    }
+  });
+  if (!kolom.length) { el.textContent = teksBaru; return; }
+  const token = (el._odometer || 0) + 1;
+  el._odometer = token;
+  el.textContent = '';
+  el.append(buatSpan('visually-hidden', teksBaru), tampil);
+  let selesai = 0;
+  kolom.forEach((c, j) => {
+    const jauh = c.langkah * TINGGI_DIGIT;
+    const [dari, ke] = c.naik ? [0, -jauh] : [-jauh, 0];
+    c.pita.style.transform = `translateY(${dari}em)`;
+    gerak(c.pita, { transform: [`translateY(${dari}em)`, `translateY(${ke}em)`] },
+      { duration: 0.55 + Math.min(c.langkah, 9) * 0.06, delay: (kolom.length - 1 - j) * 0.04, ease: [0.22, 1, 0.36, 1] })
+      .then(() => {
+        selesai += 1;
+        if (selesai === kolom.length && el._odometer === token) el.textContent = teksBaru;
+      });
   });
 }
 
@@ -53,7 +103,26 @@ function pasangKpi() {
     const lama = el.dataset.nilai || '';
     el.dataset.nilai = e.value;
     // Biarkan Shiny menulis nilainya terlebih dahulu, lalu animasikan.
-    setTimeout(() => animasiAngka(el, lama, e.value), 0);
+    setTimeout(() => odometer(el, lama, e.value), 0);
+  });
+}
+
+// anime.js: cincin progres di sekeliling ikon kartu KPI (nilai 0-1 dari server)
+function pasangCincin() {
+  if (!window.Shiny || !window.Shiny.addCustomMessageHandler) return;
+  window.Shiny.addCustomMessageHandler('zi_cincin', (pesan) => {
+    Object.entries(pesan || {}).forEach(([id, rasio], urutan) => {
+      const keluaran = document.getElementById(id);
+      const kartu = keluaran && keluaran.closest('.kpi-kartu');
+      const isi = kartu && kartu.querySelector('.kpi-cincin .isi');
+      if (!isi) return;
+      const nilai = Math.max(0, Math.min(1, Number(rasio) || 0));
+      const tujuan = 100 - nilai * 100;
+      kartu.dataset.cincin = String(Math.round(nilai * 100));
+      if (kurangiGerak()) { isi.style.strokeDashoffset = String(tujuan); return; }
+      if (isi._animasi) isi._animasi.pause();
+      isi._animasi = anime(isi, { strokeDashoffset: tujuan, duration: 1300, delay: 250 + urutan * 90, ease: 'outExpo' });
+    });
   });
 }
 
@@ -252,8 +321,9 @@ function daftarkanOutputShiny() {
 // ----------------------------------------------------------------------------
 daftarkanOutputShiny();
 pasangKpi();
+pasangCincin();
 pasangPenegasan();
 const mulai = () => { animasiMasuk(); animasiHover(); setTimeout(animasiGulir, 300); };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mulai); else mulai();
 
-window.ZiUI = { animasiAngka, versi: '1.0.0' };
+window.ZiUI = { odometer, versi: '1.1.0' };
