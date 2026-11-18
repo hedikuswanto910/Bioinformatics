@@ -57,7 +57,11 @@ daftar_zona_ui <- function(x, aktif) {
     }
     accordion_panel(judul, isi, value = zn$zona)
   })
+  # Buka zona butir yang sedang dikerjakan; bila zona itu tidak memuat butir
+  # hasil filter/pencarian, buka zona pertama yang memuatnya.
   zona_aktif <- BUTIR$zona[BUTIR$kode == aktif]
+  zona_hasil <- ZONA$zona[ZONA$zona %in% x$zona]
+  if (length(zona_hasil) && !(length(zona_aktif) && zona_aktif %in% zona_hasil)) zona_aktif <- zona_hasil[1]
   div(class = "accordion-zona", do.call(accordion, c(panel, list(id = "acc_zona", open = zona_aktif, multiple = FALSE))))
 }
 

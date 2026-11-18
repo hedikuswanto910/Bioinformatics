@@ -254,3 +254,18 @@ test_that("filter status pil memakai nilai yang sama dengan filter lama dan meng
   expect_match(h, "pil-status", fixed = TRUE)
   expect_match(paste(sapply(pil_status_nama(j), as.character), collapse = ""), ">2<", fixed = TRUE)
 })
+
+test_that("ekspor Excel tidak memuat relasi ke berkas yang tidak ada", {
+  j <- isi_semua("A")
+  isian <- data.frame(kode = names(j), jawaban = unname(j), narasi = "", bukti = "", stringsAsFactors = FALSE)
+  tm <- validasi_semua(RB, isian, NULL, 2026); st <- status_butir(RB, isian, tm)
+  f <- tempfile(fileext = ".xlsx")
+  ekspor_lembar_isian(RB, isian, st, tm, hitung_skor(RB, jawaban_dari_isian(isian)), f, 2026)
+  isi <- utils::unzip(f, list = TRUE)$Name
+  for (r in grep("^xl/worksheets/_rels/.*\\.rels$", isi, value = TRUE)) {
+    xml <- paste(readLines(unz(f, r), warn = FALSE), collapse = "")
+    target <- regmatches(xml, gregexpr('Target="[^"]+"', xml))[[1]]
+    jalur <- sub("^Target=\"\\.\\./", "xl/", sub("\"$", "", target))
+    expect_true(all(jalur %in% isi), info = r)
+  }
+})

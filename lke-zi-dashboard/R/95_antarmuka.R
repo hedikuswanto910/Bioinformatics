@@ -100,6 +100,7 @@ CSS_GRAFIK <- isi_warna("
 
 zi_ui_head <- function() {
   htmltools::tagList(
+    htmltools::tags$link(rel = "icon", type = "image/png", href = gambar_tampilan("logo")),
     htmltools::tags$style(htmltools::HTML(CSS_GRAFIK)),
     htmltools::tags$style(htmltools::HTML(CSS_PIL)),
     htmltools::tags$meta(name = "zi-transisi-tab", content = KONFIG$transisi_tab_ms),

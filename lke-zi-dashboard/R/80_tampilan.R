@@ -310,7 +310,15 @@ document.addEventListener('DOMContentLoaded', function() {
   };
   document.querySelectorAll('#nav .nav-link').forEach(function(a) { a.addEventListener('shown.bs.tab', atur); });
   atur();
-  window.addEventListener('scroll', function() { document.body.classList.toggle('pita-lekat', window.scrollY > 10); }, {passive: true});
+  // Ribbon menyusut 8 px saat halaman digulir. Ambang masuk (48 px) dan keluar
+  // (8 px) dibuat berjarak agar penyusutan itu tidak memicu bolak-balik
+  // (scroll anchoring browser menggeser posisi gulir sebesar perubahan tinggi).
+  var lekat = false;
+  window.addEventListener('scroll', function() {
+    var y = window.scrollY;
+    if (!lekat && y > 48) { lekat = true; document.body.classList.add('pita-lekat'); }
+    else if (lekat && y < 8) { lekat = false; document.body.classList.remove('pita-lekat'); }
+  }, {passive: true});
 });
 $(document).on('shown.bs.tab', '#nav [data-bs-toggle=tab], #nav [data-toggle=tab]', function(e) {
   document.body.classList.toggle('banner-ringkas', e.target.dataset.value !== 'Beranda');

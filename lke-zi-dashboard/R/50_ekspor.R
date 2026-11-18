@@ -8,6 +8,35 @@
 # nomor baris di template) untuk disalin ke portal / template resmi.
 # =============================================================================
 
+# openxlsx 4.2.x menulis relasi ke xl/drawings/drawingN.xml dan vmlDrawingN.vml
+# untuk setiap lembar walaupun berkasnya tidak dibuat. Excel mengabaikannya,
+# tetapi pembaca ketat (openpyxl/pandas, validator OOXML) menolak berkas itu.
+# Fungsi ini membuang relasi yang menunjuk ke berkas yang tidak ada.
+bersihkan_rels_xlsx <- function(berkas) {
+  tmp <- tempfile("xlsx_"); dir.create(tmp)
+  on.exit(unlink(tmp, recursive = TRUE), add = TRUE)
+  utils::unzip(berkas, exdir = tmp)
+  rels <- list.files(file.path(tmp, "xl", "worksheets", "_rels"), pattern = "\\.rels$", full.names = TRUE)
+  diubah <- FALSE
+  for (r in rels) {
+    xml <- paste(readLines(r, warn = FALSE, encoding = "UTF-8"), collapse = "")
+    entri <- regmatches(xml, gregexpr("<Relationship [^>]*/>", xml))[[1]]
+    target <- sub('.*Target="([^"]+)".*', "\\1", entri)
+    eksternal <- grepl('TargetMode="External"', entri)
+    ada <- eksternal | file.exists(file.path(dirname(dirname(r)), target))
+    if (all(ada)) next
+    for (e in entri[!ada]) xml <- sub(e, "", xml, fixed = TRUE)
+    writeLines(xml, r, useBytes = TRUE); diubah <- TRUE
+  }
+  if (diubah) {
+    tujuan <- normalizePath(berkas)
+    file.remove(tujuan)
+    zip::zipr(tujuan, files = list.files(tmp, all.files = TRUE, no.. = TRUE), root = tmp,
+              include_directories = FALSE, mode = "mirror")
+  }
+  invisible(berkas)
+}
+
 ekspor_lembar_isian <- function(rubrik, isian, status, temuan, skor, keluaran, tahun = KONFIG$tahun, capa = NULL) {
   idx <- stats::setNames(seq_len(nrow(isian)), isian$kode)
   ambil <- function(k, kol) if (k %in% names(idx)) isian[[kol]][idx[[k]]] %||% "" else ""
@@ -68,6 +97,7 @@ ekspor_lembar_isian <- function(rubrik, isian, status, temuan, skor, keluaran, t
     openxlsx::setColWidths(wb, "Tindakan Korektif", cols = seq_len(ncol(cp)), widths = c(5, 10, 18, 50, 40, 40, 15, 11, 16, 35, 17))
   }
   openxlsx::saveWorkbook(wb, keluaran, overwrite = TRUE)
+  bersihkan_rels_xlsx(keluaran)
   invisible(keluaran)
 }
 
