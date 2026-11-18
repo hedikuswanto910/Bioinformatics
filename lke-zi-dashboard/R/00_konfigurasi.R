@@ -60,7 +60,12 @@ KONFIG <- list(
 
   # --- Transisi saat berpindah tab (milidetik) -----------------------------------
   # Halaman baru memudar masuk dalam waktu ini. 0 = tanpa transisi.
-  transisi_tab_ms = as.integer(Sys.getenv("ZI_TRANSISI_TAB_MS", "200"))
+  transisi_tab_ms = as.integer(Sys.getenv("ZI_TRANSISI_TAB_MS", "200")),
+
+  # --- Templat presentasi PowerPoint (Dokumen > Ekspor) ------------------------
+  # Berkas templat FK Unhas; tidak ikut ke GitHub. Lima slide pertamanya dibaca
+  # sebagai desain: sampul, kepala merah, pembatas, isi polos, penutup.
+  templat_pptx = Sys.getenv("ZI_TEMPLAT_PPTX", "www/kustom/Template_FK_Unhas.pptx")
 )
 
 # Ambang aturan validasi berbasis aturan (bisa disesuaikan Tim ZI)

@@ -226,13 +226,18 @@ Pemetaan sub-komponen LKE terhadap klausul standar bersifat **indikatif**: LKE Z
       )
     ),
     nav_panel("Ekspor", value = "Ekspor",
-      kisi(desktop = c(1, 1), tablet = c(1, 1),
+      kisi(desktop = c(1, 1, 1), tablet = c(1, 1),
         card(card_header("Lembar isian Excel"),
              p("Buku kerja berisi seluruh isian, status validasi, skor, temuan, dan register tindakan korektif. Kolom 'Baris LKE' merujuk nomor baris pada templat resmi."),
              downloadButton("e_excel", "Unduh Excel")),
         card(card_header("Laporan validasi (Word)"),
              p("Laporan berstruktur akademis (pendahuluan, metode, hasil, pembahasan, keterbatasan, simpulan dan rekomendasi) dilengkapi blok pengendalian dokumen."),
-             downloadButton("e_docx", "Unduh Word"))
+             downloadButton("e_docx", "Unduh Word")),
+        card(card_header("Presentasi pimpinan (PowerPoint)"),
+             p("Bahan paparan berbasis templat FK Unhas: ringkasan skor, skor per komponen, status validasi, analisis sensitivitas, temuan utama, butir prioritas, tindakan korektif, serta simpulan dan rekomendasi. Setiap slide dilengkapi catatan pembicara."),
+             textInput("e_penyaji", "Nama dan jabatan penyaji (sampul)", placeholder = "mis. Dekan Fakultas Kedokteran"),
+             uiOutput("e_status_templat"),
+             downloadButton("e_pptx", "Unduh PowerPoint"))
       )
     )
   ),
@@ -805,6 +810,18 @@ server <- function(input, output, session) {
   output$e_excel <- downloadHandler(
     filename = function() sprintf("Isian_LKE_ZI_%d_%s.xlsx", tahun(), format(Sys.Date(), "%Y%m%d")),
     content = function(file) ekspor_lembar_isian(RB, isian(), status(), temuan(), skor(), file, tahun(), capa = capa()))
+  output$e_status_templat <- renderUI({
+    if (file.exists(KONFIG$templat_pptx)) tags$small(class = "text-muted d-block mb-2", "Templat: ", tags$code(KONFIG$templat_pptx))
+    else div(class = "alert alert-warning py-2 small", "Templat FK Unhas belum ditemukan di ", tags$code(KONFIG$templat_pptx),
+             ". Presentasi tetap dibuat dengan tampilan polos.")
+  })
+  output$e_pptx <- downloadHandler(
+    filename = function() sprintf("Presentasi_LKE_ZI_%d_%s.pptx", tahun(), format(Sys.Date(), "%Y%m%d")),
+    content = function(file) {
+      penyaji <- trimws(input$e_penyaji %||% "")
+      laporan_presentasi_pptx(RB, isian(), status(), temuan(), skor(), file, tahun(), capa = capa(), skenario = skenario(),
+                              riwayat = riwayat(), butir = BUTIR, penyaji = if (nzchar(penyaji)) penyaji else "[Nama dan jabatan penyaji]")
+    })
   output$e_docx <- downloadHandler(
     filename = function() sprintf("Laporan_Validasi_LKE_%d_%s.docx", tahun(), format(Sys.Date(), "%Y%m%d")),
     content = function(file) laporan_validasi_docx(RB, isian(), status(), temuan(), skor(), file, tahun(),

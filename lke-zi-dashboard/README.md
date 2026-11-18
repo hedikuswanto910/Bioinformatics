@@ -120,7 +120,7 @@ Kedua skenario merupakan ilustrasi rentang risiko, bukan prediksi.
 
 ```r
 install.packages(c("shiny", "bslib", "DT", "dplyr", "readxl", "openxlsx", "httr2",
-                   "jsonlite", "RSQLite", "DBI", "ggplot2", "pdftools", "officer", "testthat"))
+                   "jsonlite", "RSQLite", "DBI", "ggplot2", "pdftools", "officer", "flextable", "testthat"))
 ```
 
 **Menjalankan aplikasi:** buka `app.R` di RStudio lalu pilih **Run App**, atau jalankan:
@@ -140,6 +140,8 @@ Rscript scripts/siapkan_data.R --isian "Indeks_Revisi_FK_UNHAS.xlsx" --tahun 202
 ```
 
 Data internal disimpan di `data/lokal/` dan tidak disertakan ke GitHub.
+
+**Presentasi PowerPoint.** Menu **Dokumen › Ekspor › Unduh PowerPoint** menyusun bahan paparan pimpinan (12 slide beserta catatan pembicara) dari data yang sama dengan laporan Word. Salin templat FK Unhas ke `www/kustom/Template_FK_Unhas.pptx` (atau atur `ZI_TEMPLAT_PPTX`); lima slide pertamanya dibaca berurutan sebagai desain sampul, kepala merah, pembatas bagian, isi polos, dan penutup. Tanpa templat, presentasi tetap dibuat dengan tampilan polos. Grafik disisipkan sebagai gambar 300 dpi; teks dan tabel dapat disunting di PowerPoint.
 
 **Pengaturan manual.** Menu **Pengaturan** disembunyikan secara bawaan agar parameter tidak dapat diubah dari peramban. Seluruh pengaturan dilakukan oleh Admin:
 

@@ -269,3 +269,19 @@ test_that("ekspor Excel tidak memuat relasi ke berkas yang tidak ada", {
     expect_true(all(jalur %in% isi), info = r)
   }
 })
+
+test_that("presentasi PowerPoint terbentuk tanpa templat dan memuat catatan pembicara", {
+  skip_if_not_installed("officer")
+  j <- isi_semua("A")
+  isian <- data.frame(kode = names(j), jawaban = unname(j), narasi = "", bukti = "", stringsAsFactors = FALSE)
+  tm <- validasi_semua(RB, isian, NULL, 2026); st <- status_butir(RB, isian, tm)
+  f <- tempfile(fileext = ".pptx")
+  laporan_presentasi_pptx(RB, isian, st, tm, hitung_skor(RB, jawaban_dari_isian(isian)), f, 2026, templat = "")
+  pr <- officer::read_pptx(f)
+  expect_gte(length(pr), 11)
+  isi <- utils::unzip(f, list = TRUE)$Name
+  expect_true(any(grepl("^ppt/notesSlides/", isi)))
+  media <- grep("^ppt/media/", isi, value = TRUE)
+  rels <- paste(unlist(lapply(grep("\\.rels$", isi, value = TRUE), function(r) readLines(unz(f, r), warn = FALSE))), collapse = "")
+  expect_true(all(vapply(basename(media), function(m) grepl(m, rels, fixed = TRUE), logical(1))))
+})
