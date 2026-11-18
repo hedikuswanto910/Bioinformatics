@@ -12,3 +12,5 @@ lke-zi-dashboard/data/lokal/
 # Logo & banner unggahan pengguna
 lke-zi-dashboard/www/kustom/
 lke-zi-dashboard/js/node_modules/
+# Playwright CLI output (may contain credentials)
+.playwright-cli/
