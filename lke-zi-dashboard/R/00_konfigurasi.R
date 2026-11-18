@@ -56,7 +56,11 @@ KONFIG <- list(
   # --- Jarak antarmenu pada ribbon merah (tampilan desktop) -----------------
   # Satuan CSS apa pun: 0.25cm, 0.5cm, 8px, 0.5rem. Ubah di sini atau lewat
   # ZI_JARAK_MENU di .Renviron.
-  jarak_menu = Sys.getenv("ZI_JARAK_MENU", "0.25cm")
+  jarak_menu = Sys.getenv("ZI_JARAK_MENU", "0.25cm"),
+
+  # --- Transisi saat berpindah tab (milidetik) -----------------------------------
+  # Halaman baru memudar masuk dalam waktu ini. 0 = tanpa transisi.
+  transisi_tab_ms = as.integer(Sys.getenv("ZI_TRANSISI_TAB_MS", "200"))
 )
 
 # Ambang aturan validasi berbasis aturan (bisa disesuaikan Tim ZI)

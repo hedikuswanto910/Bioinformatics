@@ -102,6 +102,7 @@ zi_ui_head <- function() {
   htmltools::tagList(
     htmltools::tags$style(htmltools::HTML(CSS_GRAFIK)),
     htmltools::tags$style(htmltools::HTML(CSS_PIL)),
+    htmltools::tags$meta(name = "zi-transisi-tab", content = KONFIG$transisi_tab_ms),
     htmltools::tags$script(src = paste0("vendor/zi-ui.min.js?v=", as.integer(file.mtime("www/vendor/zi-ui.min.js"))), defer = NA))
 }
 

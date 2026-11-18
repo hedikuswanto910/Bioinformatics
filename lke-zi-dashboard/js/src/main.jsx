@@ -265,6 +265,26 @@ function pasangPilStatus() {
   });
 }
 
+// Motion: transisi singkat saat berpindah tab. Halaman baru memudar masuk dan
+// bergeser naik 6 px; halaman lama langsung disembunyikan agar tidak ada jeda.
+// Durasi diatur dari R (KONFIG$transisi_tab_ms); 0 mematikan transisi.
+function pasangTransisiTab() {
+  const meta = document.querySelector('meta[name="zi-transisi-tab"]');
+  const durasi = Math.max(0, Number(meta ? meta.content : 200) || 0) / 1000;
+  if (!durasi) return;
+  document.addEventListener('shown.bs.tab', (e) => {
+    if (kurangiGerak()) return;
+    const tautan = e.target;
+    const sel = tautan && (tautan.getAttribute('data-bs-target') || tautan.getAttribute('href'));
+    if (!sel || sel.charAt(0) !== '#') return;
+    const panel = document.getElementById(sel.slice(1));
+    if (!panel || !panel.classList.contains('tab-pane')) return;
+    if (panel._transisi) panel._transisi.stop();
+    panel._transisi = gerak(panel, { opacity: [0, 1], y: [6, 0] }, { duration: durasi, ease: [0.22, 1, 0.36, 1] });
+    panel._transisi.then(() => { panel.style.transform = ''; panel.style.opacity = ''; });
+  });
+}
+
 // ----------------------------------------------------------------------------
 // 3. Grafik bergaya shadcn/ui charts di atas Recharts
 // ----------------------------------------------------------------------------
@@ -395,7 +415,7 @@ daftarkanOutputShiny();
 pasangKpi();
 pasangCincin();
 pasangPenegasan();
-const mulai = () => { pasangPenandaRibbon(); pasangPilStatus(); animasiMasuk(); animasiHover(); setTimeout(animasiGulir, 300); };
+const mulai = () => { pasangPenandaRibbon(); pasangPilStatus(); pasangTransisiTab(); animasiMasuk(); animasiHover(); setTimeout(animasiGulir, 300); };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mulai); else mulai();
 
-window.ZiUI = { odometer, versi: '1.2.0' };
+window.ZiUI = { odometer, versi: '1.3.0' };

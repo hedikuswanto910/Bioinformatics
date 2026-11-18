@@ -15,3 +15,5 @@ ZI_UNIT=Fakultas Kedokteran Universitas Hasanuddin
 # ZI_TEKS_BANNER=otomatis
 # Jarak antarmenu pada ribbon merah (desktop), mis. 0.25cm atau 0.5cm
 # ZI_JARAK_MENU=0.25cm
+# Durasi transisi saat berpindah tab dalam milidetik (0 = tanpa transisi)
+# ZI_TRANSISI_TAB_MS=200
